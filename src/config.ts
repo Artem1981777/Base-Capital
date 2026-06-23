@@ -12,7 +12,7 @@ export const config = {
 	network: isMainnet ? "eip155:8453" : "eip155:84532", // Base / Base Sepolia
 	// Free public testnet facilitator vs CDP mainnet facilitator (no fee for USDC on Base)
 	facilitatorUrl: isMainnet
-		? "https://api.cdp.coinbase.com/platform/v2/x402"
+		? "https://facilitator.xpay.sh"
 		: "https://x402.org/facilitator",
 	// USDC payout / identity. Basename resolves to the registered payout address.
 	payTo: process.env.PAY_TO ?? "artem00777.base.eth",

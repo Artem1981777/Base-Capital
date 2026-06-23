@@ -2,7 +2,6 @@ import express from "express"
 import { paymentMiddleware, x402ResourceServer } from "@x402/express"
 import { ExactEvmScheme } from "@x402/evm/exact/server"
 import { HTTPFacilitatorClient } from "@x402/core/server"
-import { facilitator as cdpFacilitator } from "@coinbase/x402"
 import { BUILDER_CODE, declareBuilderCodeExtension } from "@x402/extensions/builder-code"
 import { config } from "./config.js"
 import { assessToken } from "./lib/risk.js"
@@ -60,7 +59,7 @@ export function createApp() {
 	// Facilitator: free public one on testnet; CDP facilitator on mainnet
 	// (needs free CDP API keys; charges no fee for USDC on Base).
 	const facilitatorClient = config.isMainnet
-		? new HTTPFacilitatorClient(cdpFacilitator)
+		? new HTTPFacilitatorClient({ url: config.facilitatorUrl })
 		: new HTTPFacilitatorClient({ url: config.facilitatorUrl })
 
 	// Register the EVM "exact" payment scheme for our network.
