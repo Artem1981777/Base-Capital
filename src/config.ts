@@ -25,5 +25,7 @@ export const config = {
 		(isMainnet ? "https://mainnet.base.org" : "https://sepolia.base.org"),
 	cdpApiKeyId: process.env.CDP_API_KEY_ID,
 	cdpApiKeySecret: process.env.CDP_API_KEY_SECRET,
+	// Base Build app id for base.dev domain verification (public meta tag).
+	baseAppId: process.env.BASE_APP_ID ?? "6a3a6b5ad79487d5e6aaca0a",
 	port: Number(process.env.PORT ?? 3000),
 }
