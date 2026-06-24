@@ -40,7 +40,7 @@ if (res.ok) {
 	console.log("\n--- Payment settled ---")
 	console.log(JSON.stringify(settle, null, 2))
 	console.log(
-		"\nView the tx on https://sepolia.basescan.org (search the txHash above).",
+		"\nView the tx on https://basescan.org (search the txHash above).",
 	)
 } else {
 	console.log(`\nRequest failed: HTTP ${res.status}`)
