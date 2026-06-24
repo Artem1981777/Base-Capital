@@ -1,147 +1,178 @@
 # Base Capital
 
-**x402 onchain risk-intelligence API for AI trading agents on Base.**
+**On-chain risk intelligence for Base — an autonomous agent that stakes real USDC behind every verdict, and a paid x402 API that AI trading agents can call before they swap.**
 
-AI trading agents need to check a token before they swap. Base Capital answers
-that in one paid request: an agent calls the endpoint, gets `402 Payment
-Required`, pays ~$0.01 USDC over x402, and receives a JSON risk score.
-
-**Every paid call is one USDC transaction stamped with your Base Builder Code
-(`bc_kob8hqa0`) — so it counts toward Builder Rewards.** The agent pays the
-API fee in USDC; gas is sponsored by the facilitator, so you pay nothing.
+- 🌐 Live app: https://base-capital.vercel.app
+- 🔗 RiskStake contract (verified): https://basescan.org/address/0x1E2806454d2a086120CCf09aA81a495d15e5Bd09#code
+- 🏗 Built on Base mainnet · paid in USDC over [x402](https://www.x402.org) · attributed to Builder Code `bc_kob8hqa0`
 
 ---
 
-## How it earns
+## Why it's different
 
-1. Agent calls `GET /v1/risk/{token}` → server returns `402` with payment terms.
-2. Agent pays USDC; the **xpay facilitator** (`facilitator.xpay.sh`) settles on
-   Base and appends the **ERC-8021 attribution suffix** carrying your Builder
-   Code. Payments are gasless (EIP-3009) — the facilitator sponsors gas.
-3. The transaction is attributed to you; payout goes to **`artem00777.base.eth`**.
-4. The endpoint exposes an x402 manifest at `/` so any x402 client can discover
-   its terms. (x402 Bazaar auto-indexing is specific to the CDP facilitator; with
-   the keyless xpay facilitator, list it manually for a Bazaar presence.)
+Most "risk score" APIs just *say* a token is safe. Base Capital's autonomous agent **puts money on it**: every verdict it publishes is also committed on-chain with a USDC stake in the `RiskStake` contract.
+
+- A **correct** verdict → the stake is returned.
+- A **wrong** verdict → the stake is **slashed to the treasury**.
+
+The agent's entire track record — total staked, slashed, returned, and accuracy — is queryable on-chain by anyone, with **zero trust** in us. That is the moat: verifiable skin-in-the-game reputation for an AI agent.
 
 ---
 
-## Project layout
+## How it works
 
-\`\`\`
-base-capital/
-  src/
-    config.ts          # env + testnet/mainnet switch, builder code, payout
-    app.ts             # Express app + x402 payment middleware + route
-    server.ts          # local dev entry (npm run dev)
-    lib/
-      dexscreener.ts   # free market data (liquidity, volume, age)
-      onchain.ts       # free RPC reads (owner, totalSupply) via viem
-      risk.ts          # 0-100 scoring logic
-      cache.ts         # TTL cache to respect free rate limits
-  api/index.ts         # Vercel serverless entry
-  .env.example
-  vercel.json
-\`\`\`
+```mermaid
+flowchart TD
+    A["Hourly Risk Agent (agent/tick.ts)"] -->|"scores watchlist"| B["Verdict log (src/data/log.ts)"]
+    B --> C["Free + paid API (Express + x402)"]
+    A2["Hourly Stake Agent (agent/stake.ts)"] -->|"stakes / resolves USDC"| D["RiskStake contract on Base"]
+    D -->|"getAgentStats()"| C
+    C -->|"GET /v1/risk/:token ($0.01 USDC)"| E["AI trading agents"]
+    C -->|"landing + live reputation"| F["Humans / judges"]
+```
 
-## The endpoint
+1. **Risk Agent** (`agent/tick.ts`, hourly) scores a watchlist of Base tokens 0–100 using free market + on-chain signals, and publishes a verdict log.
+2. **Stake Agent** (`agent/stake.ts`, hourly) commits each fresh verdict on-chain with a $0.02 USDC stake, and resolves matured verdicts (return on correct, slash on wrong).
+3. **API** serves the verdicts: free preview/feed/stats endpoints power the landing, paid x402 endpoints serve AI agents. Each paid call is a USDC transaction stamped with the Builder Code, counting toward Builder Rewards.
+4. **On-chain reputation** is read live from the verified contract and surfaced on the landing page.
 
-`GET /v1/risk/{token}` — `$0.01` USDC
+---
 
-\`\`\`json
+## On-chain layer — RiskStake
+
+Minimal, audited-style staking contract (single file, no external deps). Verified on BaseScan.
+
+| | |
+|---|---|
+| Contract | [`0x1E2806454d2a086120CCf09aA81a495d15e5Bd09`](https://basescan.org/address/0x1E2806454d2a086120CCf09aA81a495d15e5Bd09#code) |
+| Network | Base mainnet (`eip155:8453`) |
+| Stake asset | USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| Agent / oracle | `0x404d641eB58352c5AA23aF6b16d08f0C979f6778` |
+| Stake per verdict | $0.02 USDC |
+
+Key functions:
+
+- `commitVerdict(id, token, rating, stake)` — agent stakes USDC behind a verdict (`rating`: 0 SAFE / 1 RISKY / 2 LIKELY_RUG).
+- `resolveVerdict(id, correct)` — oracle resolves; correct returns the stake, wrong slashes it to the treasury.
+- `getAgentStats(agent)` — public read: `totalVerdicts, totalStaked, totalSlashed, totalReturned, correct, wrong, accuracyBps`.
+
+Protected by `onlyOwner` (resolve/admin) and a `nonReentrant` guard; `rescue()` exists purely as a hackathon safety valve so funds can never be locked.
+
+---
+
+## API
+
+Base URL: `https://base-capital.vercel.app`
+
+| Method & path | Price | Description |
+|---|---|---|
+| `GET /v1/risk/:token` | $0.01 USDC | Full risk score for a Base token (liquidity, LP, ownership, age, flags). x402-gated. |
+| `GET /v1/signal/trending` | $0.01 USDC | Risk-ranked watchlist, riskiest first. Built for agent-to-agent use. x402-gated. |
+| `GET /v1/preview/:token` | free (20/min/IP) | Same scoring as the paid route; powers the browser demo. |
+| `GET /v1/feed?limit=` | free | Recent autonomous agent verdicts. |
+| `GET /v1/stats` | free | Autonomous agent activity stats. |
+| `GET /v1/onchain/stats` | free | Live RiskStake reputation (staked, slashed, accuracy). |
+| `GET /` | free | Landing page (HTML), or JSON manifest via `Accept: application/json`. |
+| `GET /manifest` | free | x402 manifest. |
+
+Example — paid risk score response:
+
+```json
 {
   "token": "0x...",
   "score": 72,
   "rating": "medium",
   "flags": ["medium_liquidity", "owner_not_renounced"],
-  "data": {
-    "liquidityUsd": 38000,
-    "priceUsd": "0.0123",
-    "volume24h": 91000,
-    "ageHours": 53.2,
-    "owner": "0x...",
-    "ownerRenounced": false,
-    "totalSupply": "1000000000000000000000000",
-    "dex": "uniswap",
-    "pairAddress": "0x..."
-  },
-  "disclaimer": "Heuristic score, not a buy/sell simulation...",
-  "generatedAt": "2026-06-23T09:00:00.000Z"
+  "data": { "liquidityUsd": 38000, "volume24h": 91000, "ageHours": 53.2, "ownerRenounced": false },
+  "disclaimer": "Heuristic score, not a buy/sell simulation.",
+  "generatedAt": "2026-06-24T07:00:00.000Z"
 }
-\`\`\`
+```
+
+The paid routes return `402 Payment Required` to an unpaid request. To call them, use an x402 client (e.g. `@x402/fetch`) with a funded wallet. Payments are gasless (EIP-3009): the keyless **xpay facilitator** (`facilitator.xpay.sh`) sponsors gas and settles USDC directly to the payout address.
 
 ---
 
-## Run it
+## Builder Rewards attribution
 
-\`\`\`bash
+Every paid call carries the Base Builder Code `bc_kob8hqa0` via the ERC-8021 attribution extension, so attributed USDC volume counts toward [Builder Rewards](https://www.base.dev). Payout resolves to the Basename **`artem00777.base.eth`**. The landing page embeds the Base App id (`6a3a6b5ad79487d5e6aaca0a`) meta tag for `base.dev` domain verification.
+
+---
+
+## Tech stack
+
+- **Runtime:** Node 22+, TypeScript (ESM), Express
+- **Payments:** `@x402/express`, `@x402/core`, `@x402/evm`, `@x402/extensions` (Builder Code)
+- **Chain:** [viem](https://viem.sh) against Base mainnet; Foundry (`forge`) for the contract
+- **Data:** DexScreener + GeckoTerminal (free tiers), on-chain reads via public RPC, 60s TTL cache
+- **Hosting:** Vercel (serverless) — free tier
+- **Automation:** GitHub Actions (hourly risk tick + hourly on-chain stake/resolve)
+
+---
+
+## Project layout
+
+```
+base-capital/
+  contracts/
+    RiskStake.sol        # on-chain staking + reputation (verified)
+  agent/
+    watchlist.ts         # tracked Base tokens
+    tick.ts              # hourly risk scoring -> verdict log
+    stake.ts             # hourly on-chain commit + resolve
+  src/
+    config.ts            # env, testnet/mainnet switch, addresses, builder code
+    app.ts               # Express app + x402 gate + all routes
+    server.ts            # local dev entry
+    landing.ts           # HTML landing + live on-chain reputation block
+    data/log.ts          # published verdict log (regenerated each tick)
+    lib/
+      dexscreener.ts     # free market data
+      onchain.ts         # free RPC reads (owner, supply)
+      risk.ts            # 0-100 scoring
+      verdict.ts         # classify + deterministic verdict id (SHA-256)
+      stake.ts           # viem client for RiskStake (read + write)
+      cache.ts           # TTL cache
+  api/index.ts           # Vercel serverless entry
+  .github/workflows/
+    agent.yml            # hourly risk tick
+    stake.yml            # hourly on-chain stake/resolve
+    deploy-contract.yml  # one-shot contract deploy (manual)
+  foundry.toml
+  vercel.json
+```
+
+---
+
+## Run locally
+
+```bash
 npm install
-cp .env.example .env      # defaults: testnet, payTo + builder code prefilled
+cp .env.example .env      # defaults to testnet (Base Sepolia) — free, no keys
 npm run dev               # http://localhost:3000
-\`\`\`
 
-Test the free manifest:
+curl http://localhost:3000/manifest
+curl http://localhost:3000/v1/preview/0x4200000000000000000000000000000000000006
+```
 
-\`\`\`bash
-curl http://localhost:3000/
-\`\`\`
-
-The paid route returns `402` to an unpaid `curl`. To call it as a paying client,
-use an x402 client (`@x402/fetch`) with a funded wallet. Start on **testnet**
-(Base Sepolia) — free, no keys.
-
-## Go to mainnet (real rewards)
-
-1. **No facilitator keys needed** — Base Capital uses the keyless **xpay
-   facilitator** (`https://facilitator.xpay.sh`), non-custodial and gas-sponsored.
-2. Set `NETWORK_MODE=mainnet`.
-3. Confirm your Builder Code `bc_kob8hqa0` payout address is `artem00777.base.eth`
-   at https://dashboard.base.org → your app → Builder Codes.
-4. Redeploy. That's the only switch.
-
-## Deploy free (Vercel)
-
-\`\`\`bash
-npm i -g vercel
-vercel
-\`\`\`
-
-You get a free `*.vercel.app` domain — use it to verify the app on base.dev so
-attributed activity shows in your builder dashboard.
+Go to mainnet by setting `NETWORK_MODE=mainnet` (the contract address, USDC, RPC and xpay facilitator are all selected automatically in `config.ts`). No facilitator API keys required.
 
 ---
 
-## Cost = $0 to start
+## Automation (GitHub Actions)
 
-| Item | Cost |
-|---|---|
-| Hosting (Vercel) | free tier |
-| Web domain (`*.vercel.app`) | free |
-| Base RPC | free (`mainnet.base.org`) |
-| Market data (DexScreener 60/min, GeckoTerminal 30/min) | free, no keys |
-| Builder Code attribution | free (calldata) |
-| Facilitator (xpay, USDC on Base) | no facilitator fee |
-| Gas on paid calls | sponsored by facilitator (gasless EIP-3009) |
+- **`agent.yml`** — runs `agent/tick.ts` every hour: re-scores the watchlist and commits the updated verdict log.
+- **`stake.yml`** — runs `agent/stake.ts` every hour: commits fresh verdicts on-chain (budget-capped) and resolves matured ones. Needs the `DEPLOYER_PRIVATE_KEY` repo secret.
+- **`deploy-contract.yml`** — manual `workflow_dispatch` to deploy `RiskStake` with Foundry.
 
-The in-memory cache keeps popular-token bursts under the free data rate limits.
-If volume outgrows the free tier, that means rewards are flowing — then add a
-paid data source.
+All on-chain actions are bounded: max 3 commits and 3 resolves per run, $0.02 stake each.
 
 ---
-
-## Roadmap
-
-- **Phase 2:** `GET /v1/signal/trending` ($0.005), `GET /v1/wallet/{address}` ($0.005)
-- **Moat:** cryptographically signed response receipts (cf. AgentOracle)
-- Holder-concentration + LP-lock checks via an indexer
 
 ## Honest limitations
 
-- Honeypot detection is **heuristic**, not a buy/sell simulation — false
-  negatives are possible.
-- The x402 Bazaar and the agent economy are early; call volume may start low.
-- Builder Rewards require a Basename + Builder Score ≥ 40 + Human checkmark +
-  real attributed volume. Not guaranteed income.
-- Verify the `@x402/express` middleware signature and the Builder Code field
-  against current docs before mainnet — the SDK changes quickly.
+- Risk scoring and honeypot heuristics are **not** a full buy/sell simulation — false negatives are possible.
+- The public Base RPC can be flaky under load; on-chain reads may briefly lag a just-mined write.
+- Builder Rewards require a Basename + Builder Score ≥ 40 + human verification + real attributed volume — not guaranteed income.
 
-Not financial advice.
+*Not financial advice.*
