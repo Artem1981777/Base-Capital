@@ -14,6 +14,11 @@ import {
 	type Hex,
 } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
+import { Attribution } from "ox/erc8021"
+
+// Base Builder Code (ERC-8021) attribution for agent onchain txs.
+// Appended to calldata; contracts ignore extra bytes (no contract change).
+const BUILDER_CODE_SUFFIX = Attribution.toDataSuffix({ codes: [config.builderCode] })
 import { base, baseSepolia } from "viem/chains"
 import { config } from "../config.js"
 
@@ -213,6 +218,7 @@ export async function ensureAllowance(need: bigint): Promise<void> {
 		abi: erc20Abi,
 		functionName: "approve",
 		args: [getAddress(config.riskStakeAddress), 100_000_000n],
+		dataSuffix: BUILDER_CODE_SUFFIX,
 	})
 	await client.waitForTransactionReceipt({ hash })
 	console.log(`approved USDC allowance (tx ${hash})`)
@@ -291,6 +297,7 @@ export async function commitVerdict(
 		abi: riskStakeAbi,
 		functionName: "commitVerdict",
 		args: [id, getAddress(token), rating, stake],
+		dataSuffix: BUILDER_CODE_SUFFIX,
 	})
 	await client.waitForTransactionReceipt({ hash })
 	return hash
@@ -304,6 +311,7 @@ export async function resolveVerdict(id: Hex, correct: boolean): Promise<Hex> {
 		abi: riskStakeAbi,
 		functionName: "resolveVerdict",
 		args: [id, correct],
+		dataSuffix: BUILDER_CODE_SUFFIX,
 	})
 	await client.waitForTransactionReceipt({ hash })
 	return hash
