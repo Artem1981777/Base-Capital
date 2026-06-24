@@ -15,6 +15,7 @@ export function renderLanding(opts: {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="base:app_id" content="${opts.appId}" />
+<meta name="talentapp:project_verification" content="944c81b1b8a0529ad88a45cbed5058af1db528bfc7d83a75dc6f280ff5a9a84b5245d0c6423c802ba1128d4fc12657067e7c8eba8e454b0bab63b82faa49bd97" />
 <meta name="description" content="x402 onchain risk-intelligence API for AI trading agents on Base. Pay-per-call 0-100 risk score for any Base token." />
 <meta property="og:title" content="Base Capital — x402 risk scores for Base" />
 <meta property="og:description" content="Instant onchain risk scores for Base tokens. Built for AI trading agents. Pay-per-call in USDC over x402." />
