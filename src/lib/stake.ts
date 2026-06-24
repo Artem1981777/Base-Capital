@@ -1,129 +1,304 @@
-// Autonomous on-chain staking pass for the risk agent.
+// On-chain staking against the RiskStake contract.
 //
-// 1. Commits fresh verdicts on-chain (USDC skin-in-the-game) — capped per run.
-// 2. Resolves matured pending verdicts by re-assessing the token:
-//      SAFE  verdict  -> correct if the token still scores >= 75
-//      RISKY/RUG verdict -> correct if the token has since degraded (< 75)
-//    Correct -> stake returned; Wrong -> stake slashed to treasury.
-//
-// Runs in the scheduled "Stake" GitHub Actions job with DEPLOYER_PRIVATE_KEY.
-import { config } from "../src/config.js"
-import { assessToken } from "../src/lib/risk.js"
-import { classify } from "../src/lib/verdict.js"
-import { verdicts as logVerdicts } from "../src/data/log.js"
+// Read paths use a keyless public client and are safe to call from the web
+// server (powering the landing's on-chain reputation block). Write paths
+// (commit / resolve) require the agent's private key and only run in the
+// scheduled stake job (agent/stake.ts), never in the request path.
 import {
-	commitVerdict,
-	ensureAllowance,
-	getVerdict,
-	hasContract,
-	listVerdictIds,
-	readAgentStats,
-	resolveVerdict,
-	usdcBalance,
-	usdToUnits,
-	VerdictStatus,
-} from "../src/lib/stake.js"
-import type { Hex } from "viem"
+	createPublicClient,
+	createWalletClient,
+	getAddress,
+	http,
+	type Address,
+	type Hex,
+} from "viem"
+import { privateKeyToAccount } from "viem/accounts"
+import { base, baseSepolia } from "viem/chains"
+import { config } from "../config.js"
 
-const RATING: Record<string, number> = { SAFE: 0, RISKY: 1, LIKELY_RUG: 2 }
+const chain = config.isMainnet ? base : baseSepolia
 
-function idHex(hash: string): Hex {
-	return (hash.startsWith("0x") ? hash : `0x${hash}`) as Hex
+export const riskStakeAbi = [
+	{
+		name: "commitVerdict",
+		type: "function",
+		stateMutability: "nonpayable",
+		inputs: [
+			{ name: "id", type: "bytes32" },
+			{ name: "token", type: "address" },
+			{ name: "rating", type: "uint8" },
+			{ name: "stake", type: "uint256" },
+		],
+		outputs: [],
+	},
+	{
+		name: "resolveVerdict",
+		type: "function",
+		stateMutability: "nonpayable",
+		inputs: [
+			{ name: "id", type: "bytes32" },
+			{ name: "correct", type: "bool" },
+		],
+		outputs: [],
+	},
+	{
+		name: "verdictCount",
+		type: "function",
+		stateMutability: "view",
+		inputs: [],
+		outputs: [{ type: "uint256" }],
+	},
+	{
+		name: "verdictIds",
+		type: "function",
+		stateMutability: "view",
+		inputs: [{ name: "", type: "uint256" }],
+		outputs: [{ type: "bytes32" }],
+	},
+	{
+		name: "verdicts",
+		type: "function",
+		stateMutability: "view",
+		inputs: [{ name: "", type: "bytes32" }],
+		outputs: [
+			{ name: "agent", type: "address" },
+			{ name: "token", type: "address" },
+			{ name: "rating", type: "uint8" },
+			{ name: "stake", type: "uint96" },
+			{ name: "committedAt", type: "uint40" },
+			{ name: "status", type: "uint8" },
+		],
+	},
+	{
+		name: "getAgentStats",
+		type: "function",
+		stateMutability: "view",
+		inputs: [{ name: "agent", type: "address" }],
+		outputs: [
+			{ name: "totalVerdicts", type: "uint256" },
+			{ name: "totalStaked", type: "uint256" },
+			{ name: "totalSlashed", type: "uint256" },
+			{ name: "totalReturned", type: "uint256" },
+			{ name: "correct", type: "uint256" },
+			{ name: "wrong", type: "uint256" },
+			{ name: "accuracyBps", type: "uint256" },
+		],
+	},
+] as const
+
+export const erc20Abi = [
+	{
+		name: "approve",
+		type: "function",
+		stateMutability: "nonpayable",
+		inputs: [
+			{ name: "spender", type: "address" },
+			{ name: "amount", type: "uint256" },
+		],
+		outputs: [{ type: "bool" }],
+	},
+	{
+		name: "allowance",
+		type: "function",
+		stateMutability: "view",
+		inputs: [
+			{ name: "owner", type: "address" },
+			{ name: "spender", type: "address" },
+		],
+		outputs: [{ type: "uint256" }],
+	},
+	{
+		name: "balanceOf",
+		type: "function",
+		stateMutability: "view",
+		inputs: [{ name: "account", type: "address" }],
+		outputs: [{ type: "uint256" }],
+	},
+] as const
+
+export const VerdictStatus = {
+	None: 0,
+	Pending: 1,
+	Correct: 2,
+	Wrong: 3,
+} as const
+
+export type OnchainAgentStats = {
+	totalVerdicts: number
+	totalStakedUsd: number
+	totalSlashedUsd: number
+	totalReturnedUsd: number
+	correct: number
+	wrong: number
+	accuracyBps: number
 }
 
-async function commitFresh(stakeUnits: bigint): Promise<number> {
-	let committed = 0
-	const bal = await usdcBalance()
-	if (bal < stakeUnits) {
-		console.log(
-			`skip commit: USDC balance ${Number(bal) / 1e6} < stake ${Number(stakeUnits) / 1e6}`,
-		)
-		return 0
-	}
-	await ensureAllowance(stakeUnits * BigInt(config.maxCommitsPerRun))
-	for (const v of logVerdicts) {
-		if (committed >= config.maxCommitsPerRun) break
-		const id = idHex(v.hash)
-		const rating = RATING[v.verdict]
-		if (rating === undefined) continue
-		try {
-			const existing = await getVerdict(id)
-			if (existing.status !== VerdictStatus.None) continue // already committed
-			const hash = await commitVerdict(id, v.token, rating, stakeUnits)
-			committed++
-			console.log(
-				`committed ${v.symbol} ${v.verdict} stake $${config.agentStakeUsd} id ${id.slice(0, 10)} tx ${hash}`,
-			)
-		} catch (e) {
-			console.error(`commit failed ${v.symbol}:`, (e as Error).message)
-		}
-	}
-	return committed
+const USDC_DECIMALS = 6n
+
+function toUsd(units: bigint): number {
+	// 6-decimal USDC -> human number with 2 dp precision.
+	return Number(units) / 1e6
 }
 
-async function resolveMatured(): Promise<number> {
-	let resolved = 0
-	const nowSec = Math.floor(Date.now() / 1000)
-	const minAgeSec = config.resolveAfterMinutes * 60
-	const ids = await listVerdictIds()
-	for (const id of ids) {
-		if (resolved >= config.maxResolvesPerRun) break
-		let v
-		try {
-			v = await getVerdict(id)
-		} catch (e) {
-			console.error(
-				`skip ${id.slice(0, 10)} (read failed):`,
-				(e as Error).message,
-			)
-			continue
-		}
-		if (v.status !== VerdictStatus.Pending) continue
-		if (nowSec - v.committedAt < minAgeSec) continue
-		try {
-			const r = await assessToken(v.token)
-			const nowVerdict = classify(r.score)
-			const saidSafe = v.rating === 0
-			const stillSafe = nowVerdict === "SAFE"
-			const correct = saidSafe ? stillSafe : !stillSafe
-			const hash = await resolveVerdict(id, correct)
-			resolved++
-			console.log(
-				`resolved ${id.slice(0, 10)} rating ${v.rating} -> ${correct ? "CORRECT" : "WRONG"} (now ${nowVerdict}/${r.score}) tx ${hash}`,
-			)
-		} catch (e) {
-			console.error(`resolve failed ${id.slice(0, 10)}:`, (e as Error).message)
-		}
-	}
-	return resolved
+export function usdToUnits(usd: string | number): bigint {
+	const [whole, frac = ""] = String(usd).split(".")
+	const fracPadded = (frac + "000000").slice(0, Number(USDC_DECIMALS))
+	return BigInt(whole || "0") * 1_000_000n + BigInt(fracPadded || "0")
 }
 
-async function main() {
-	if (!config.isMainnet) {
-		console.log("not mainnet — staking disabled")
-		return
+export function publicClient() {
+	return createPublicClient({ chain, transport: http(config.rpcUrl) })
+}
+
+export function hasContract(): boolean {
+	return /^0x[0-9a-fA-F]{40}$/.test(config.riskStakeAddress)
+}
+
+/** Keyless read of an agent's on-chain reputation. */
+export async function readAgentStats(
+	agent: string = config.agentAddress,
+): Promise<OnchainAgentStats> {
+	const client = publicClient()
+	const r = (await client.readContract({
+		address: getAddress(config.riskStakeAddress),
+		abi: riskStakeAbi,
+		functionName: "getAgentStats",
+		args: [getAddress(agent)],
+	})) as readonly bigint[]
+	return {
+		totalVerdicts: Number(r[0]),
+		totalStakedUsd: toUsd(r[1]),
+		totalSlashedUsd: toUsd(r[2]),
+		totalReturnedUsd: toUsd(r[3]),
+		correct: Number(r[4]),
+		wrong: Number(r[5]),
+		accuracyBps: Number(r[6]),
 	}
-	if (!hasContract()) {
-		console.log("RISKSTAKE_ADDRESS not configured — nothing to do")
-		return
-	}
-	if (!config.agentPrivateKey) {
-		console.error("DEPLOYER_PRIVATE_KEY not set — cannot stake")
-		process.exit(1)
-	}
-	const stakeUnits = usdToUnits(config.agentStakeUsd)
-	console.log(
-		`stake run: contract ${config.riskStakeAddress} agent ${config.agentAddress} stake $${config.agentStakeUsd}`,
+}
+
+export function agentWallet() {
+	const pk = config.agentPrivateKey
+	if (!pk) throw new Error("DEPLOYER_PRIVATE_KEY (agent key) not set")
+	const account = privateKeyToAccount(
+		(pk.startsWith("0x") ? pk : `0x${pk}`) as Hex,
 	)
-	const resolved = await resolveMatured()
-	const committed = await commitFresh(stakeUnits)
-	const s = await readAgentStats()
-	console.log(
-		`done: +${committed} committed, ${resolved} resolved | on-chain: ${s.totalVerdicts} verdicts, $${s.totalStakedUsd} staked, ${s.correct}/${s.correct + s.wrong} correct, accuracy ${(s.accuracyBps / 100).toFixed(2)}%`,
-	)
+	const wallet = createWalletClient({
+		account,
+		chain,
+		transport: http(config.rpcUrl),
+	})
+	return { account, wallet }
 }
 
-main().catch((e) => {
-	console.error(e)
-	process.exit(1)
-})
+/** Ensure the contract is approved to pull at least `need` USDC from the agent. */
+export async function ensureAllowance(need: bigint): Promise<void> {
+	const { account, wallet } = agentWallet()
+	const client = publicClient()
+	const current = (await client.readContract({
+		address: getAddress(config.usdcAddress),
+		abi: erc20Abi,
+		functionName: "allowance",
+		args: [account.address, getAddress(config.riskStakeAddress)],
+	})) as bigint
+	if (current >= need) return
+	// Approve a generous batch (100 USDC) so we don't approve every commit.
+	const hash = await wallet.writeContract({
+		address: getAddress(config.usdcAddress),
+		abi: erc20Abi,
+		functionName: "approve",
+		args: [getAddress(config.riskStakeAddress), 100_000_000n],
+	})
+	await client.waitForTransactionReceipt({ hash })
+	console.log(`approved USDC allowance (tx ${hash})`)
+}
+
+export async function usdcBalance(): Promise<bigint> {
+	const { account } = agentWallet()
+	const client = publicClient()
+	return (await client.readContract({
+		address: getAddress(config.usdcAddress),
+		abi: erc20Abi,
+		functionName: "balanceOf",
+		args: [account.address],
+	})) as bigint
+}
+
+export type OnchainVerdict = {
+	id: Hex
+	agent: Address
+	token: Address
+	rating: number
+	stake: bigint
+	committedAt: number
+	status: number
+}
+
+export async function getVerdict(id: Hex): Promise<OnchainVerdict> {
+	const client = publicClient()
+	const r = (await client.readContract({
+		address: getAddress(config.riskStakeAddress),
+		abi: riskStakeAbi,
+		functionName: "verdicts",
+		args: [id],
+	})) as readonly [Address, Address, number, bigint, number, number]
+	return {
+		id,
+		agent: r[0],
+		token: r[1],
+		rating: Number(r[2]),
+		stake: r[3],
+		committedAt: Number(r[4]),
+		status: Number(r[5]),
+	}
+}
+
+export async function listVerdictIds(): Promise<Hex[]> {
+	const client = publicClient()
+	const count = (await client.readContract({
+		address: getAddress(config.riskStakeAddress),
+		abi: riskStakeAbi,
+		functionName: "verdictCount",
+	})) as bigint
+	const ids: Hex[] = []
+	for (let i = 0n; i < count; i++) {
+		const id = (await client.readContract({
+			address: getAddress(config.riskStakeAddress),
+			abi: riskStakeAbi,
+			functionName: "verdictIds",
+			args: [i],
+		})) as Hex
+		ids.push(id)
+	}
+	return ids
+}
+
+export async function commitVerdict(
+	id: Hex,
+	token: string,
+	rating: number,
+	stake: bigint,
+): Promise<Hex> {
+	const { wallet } = agentWallet()
+	const client = publicClient()
+	const hash = await wallet.writeContract({
+		address: getAddress(config.riskStakeAddress),
+		abi: riskStakeAbi,
+		functionName: "commitVerdict",
+		args: [id, getAddress(token), rating, stake],
+	})
+	await client.waitForTransactionReceipt({ hash })
+	return hash
+}
+
+export async function resolveVerdict(id: Hex, correct: boolean): Promise<Hex> {
+	const { wallet } = agentWallet()
+	const client = publicClient()
+	const hash = await wallet.writeContract({
+		address: getAddress(config.riskStakeAddress),
+		abi: riskStakeAbi,
+		functionName: "resolveVerdict",
+		args: [id, correct],
+	})
+	await client.waitForTransactionReceipt({ hash })
+	return hash
+    }
