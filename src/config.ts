@@ -28,4 +28,29 @@ export const config = {
 	// Base Build app id for base.dev domain verification (public meta tag).
 	baseAppId: process.env.BASE_APP_ID ?? "6a3a6b5ad79487d5e6aaca0a",
 	port: Number(process.env.PORT ?? 3000),
+
+	// --- On-chain reputation (RiskStake) ---
+	// Deployed RiskStake contract: the agent stakes USDC behind every verdict.
+	riskStakeAddress:
+		process.env.RISKSTAKE_ADDRESS ??
+		(isMainnet ? "0x1E2806454d2a086120CCf09aA81a495d15e5Bd09" : ""),
+	// USDC token used for staking (6 decimals).
+	usdcAddress:
+		process.env.USDC_ADDRESS ??
+		(isMainnet
+			? "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+			: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"),
+	// The agent / oracle address (deployer + owner of RiskStake). Public, read-only use.
+	agentAddress:
+		process.env.AGENT_ADDRESS ??
+		"0x404d641eB58352c5AA23aF6b16d08f0C979f6778",
+	// Private key for the staking agent (owner). Only read in the stake job, never shipped to the client.
+	agentPrivateKey: process.env.DEPLOYER_PRIVATE_KEY,
+	// USDC staked behind each verdict (string, human units).
+	agentStakeUsd: process.env.AGENT_STAKE_USD ?? "0.02",
+	// Max verdicts committed / resolved per stake run (budget guard).
+	maxCommitsPerRun: Number(process.env.MAX_COMMITS_PER_RUN ?? 3),
+	maxResolvesPerRun: Number(process.env.MAX_RESOLVES_PER_RUN ?? 3),
+	// Pending verdicts older than this (minutes) become eligible for resolution.
+	resolveAfterMinutes: Number(process.env.RESOLVE_AFTER_MINUTES ?? 50),
 }
