@@ -126,9 +126,15 @@ const risk = await res.json()
 <div id="feed"><div class="hint">Loading agent feed…</div></div>
 </div>
 
+<div class="card" id="onchaincard" style="margin-top:16px">
+<h3 style="margin:0 0 4px;font-size:1rem">🔗 On-chain reputation · RiskStake</h3>
+<p class="muted" style="margin:0 0 14px">The agent stakes USDC behind every verdict on Base mainnet — wrong calls are slashed to the treasury, correct calls are returned in full. Trustless and verifiable: <a id="oclink" href="https://basescan.org" target="_blank" rel="noopener">view the contract on BaseScan</a>.</p>
+<div id="ocstats" style="display:flex;gap:10px;flex-wrap:wrap"><div class="hint">Loading on-chain stats…</div></div>
+</div>
+
 <div class="foot">
-<a href="/manifest">Machine-readable manifest</a> ·
 <a href="${opts.repoUrl}">GitHub</a> ·
+<a href="/manifest">Machine-readable manifest</a> ·
 <a href="https://x402.org">x402</a> ·
 <a href="https://dashboard.base.org">Base Dashboard</a>
 <div style="margin-top:10px;color:#565b61">Heuristic risk scoring — not financial advice. Always DYOR.</div>
@@ -195,6 +201,21 @@ const risk = await res.json()
     }
     feedEl.innerHTML=html;
   }).catch(function(){feedEl.innerHTML='<div class="hint err">Feed unavailable.</div>';});
+})();
+</script>
+<script>
+(function(){
+  var el=document.getElementById('ocstats');
+  var link=document.getElementById('oclink');
+  if(!el)return;
+  function stat(label,val){return '<div style="flex:1;min-width:110px;background:#0a0c0f;border:1px solid #20242b;border-radius:12px;padding:12px 14px"><div style="font-size:1.4rem;font-weight:800;color:#fff">'+val+'</div><div style="font-size:.78rem;color:#8a9099;margin-top:2px">'+label+'</div></div>';}
+  fetch('/v1/onchain/stats').then(function(r){return r.json();}).then(function(d){
+    if(!d||!d.available){el.innerHTML='<div class="hint">On-chain staking initializing — first verdicts settle on the next stake run.</div>';return;}
+    if(link&&d.explorer)link.href=d.explorer;
+    var s=d.stats||{};
+    var acc=((s.accuracyBps||0)/100).toFixed(0)+'%';
+    el.innerHTML=stat('Verdicts staked',s.totalVerdicts||0)+stat('USDC staked','$'+(s.totalStakedUsd||0))+stat('Accuracy',acc)+stat('Slashed','$'+(s.totalSlashedUsd||0));
+  }).catch(function(){el.innerHTML='<div class="hint err">On-chain stats unavailable.</div>';});
 })();
 </script>
 </body>
