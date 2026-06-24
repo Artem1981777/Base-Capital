@@ -68,7 +68,16 @@ async function resolveMatured(): Promise<number> {
 	const ids = await listVerdictIds()
 	for (const id of ids) {
 		if (resolved >= config.maxResolvesPerRun) break
-		const v = await getVerdict(id)
+		let v
+		try {
+			v = await getVerdict(id)
+		} catch (e) {
+			console.error(
+				`skip ${id.slice(0, 10)} (read failed):`,
+				(e as Error).message,
+			)
+			continue
+		}
 		if (v.status !== VerdictStatus.Pending) continue
 		if (nowSec - v.committedAt < minAgeSec) continue
 		try {
