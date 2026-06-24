@@ -1,0 +1,38 @@
+name: Risk Agent
+
+on:
+  schedule:
+    - cron: "0 * * * *" # hourly
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: risk-agent
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - name: Run agent tick
+        env:
+          NETWORK_MODE: mainnet
+        run: npx tsx agent/tick.ts
+      - name: Commit verdict log
+        run: |
+          git config user.name "risk-agent"
+          git config user.email "agent@base-capital.local"
+          git add src/data/log.ts
+          if git diff --cached --quiet; then
+            echo "no changes to commit"
+          else
+            git commit -m "chore(agent): risk tick $(date -u +%FT%TZ)"
+            git push
+          fi
