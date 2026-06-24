@@ -1,0 +1,25 @@
+name: Stake Verdicts
+
+on:
+  schedule:
+    - cron: "30 * * * *" # hourly, offset 30 min from the risk tick
+  workflow_dispatch: {}
+
+concurrency:
+  group: stake-agent
+  cancel-in-progress: false
+
+jobs:
+  stake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - name: Stake + resolve verdicts on-chain
+        env:
+          NETWORK_MODE: mainnet
+          DEPLOYER_PRIVATE_KEY: REPLACE_SECRET_REF
+        run: npx tsx agent/stake.ts
