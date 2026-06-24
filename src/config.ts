@@ -17,7 +17,7 @@ export const config = {
 	// USDC payout / identity. Basename resolves to the registered payout address.
 	payTo: process.env.PAY_TO ?? "artem00777.base.eth",
 	// Base Builder Code for ERC-8021 attribution -> Builder Rewards
-	builderCode: process.env.BUILDER_CODE ?? "bc_dyp4dswh",
+	builderCode: process.env.BUILDER_CODE ?? "bc_kob8hqa0",
 	// Price per /v1/risk call (USDC)
 	riskPriceUsd: process.env.RISK_PRICE_USD ?? "0.01",
 	rpcUrl:
