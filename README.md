@@ -7,26 +7,27 @@ that in one paid request: an agent calls the endpoint, gets `402 Payment
 Required`, pays ~$0.01 USDC over x402, and receives a JSON risk score.
 
 **Every paid call is one USDC transaction stamped with your Base Builder Code
-(`bc_dyp4dswh`) — so it counts toward Builder Rewards.** The agent pays gas and
-the API fee, not you.
+(`bc_kob8hqa0`) — so it counts toward Builder Rewards.** The agent pays the
+API fee in USDC; gas is sponsored by the facilitator, so you pay nothing.
 
 ---
 
 ## How it earns
 
 1. Agent calls `GET /v1/risk/{token}` → server returns `402` with payment terms.
-2. Agent pays USDC; the CDP facilitator settles on Base and appends the
-   **ERC-8021 attribution suffix** carrying your Builder Code.
+2. Agent pays USDC; the **xpay facilitator** (`facilitator.xpay.sh`) settles on
+   Base and appends the **ERC-8021 attribution suffix** carrying your Builder
+   Code. Payments are gasless (EIP-3009) — the facilitator sponsors gas.
 3. The transaction is attributed to you; payout goes to **`artem00777.base.eth`**.
-4. Once the facilitator processes a payment with the discovery extension on, the
-   endpoint is **auto-indexed in the x402 Bazaar** — agents find it themselves.
-   No separate registration.
+4. The endpoint exposes an x402 manifest at `/` so any x402 client can discover
+   its terms. (x402 Bazaar auto-indexing is specific to the CDP facilitator; with
+   the keyless xpay facilitator, list it manually for a Bazaar presence.)
 
 ---
 
 ## Project layout
 
-```
+\`\`\`
 base-capital/
   src/
     config.ts          # env + testnet/mainnet switch, builder code, payout
@@ -40,13 +41,13 @@ base-capital/
   api/index.ts         # Vercel serverless entry
   .env.example
   vercel.json
-```
+\`\`\`
 
 ## The endpoint
 
 `GET /v1/risk/{token}` — `$0.01` USDC
 
-```json
+\`\`\`json
 {
   "token": "0x...",
   "score": 72,
@@ -66,23 +67,23 @@ base-capital/
   "disclaimer": "Heuristic score, not a buy/sell simulation...",
   "generatedAt": "2026-06-23T09:00:00.000Z"
 }
-```
+\`\`\`
 
 ---
 
 ## Run it
 
-```bash
+\`\`\`bash
 npm install
 cp .env.example .env      # defaults: testnet, payTo + builder code prefilled
 npm run dev               # http://localhost:3000
-```
+\`\`\`
 
 Test the free manifest:
 
-```bash
+\`\`\`bash
 curl http://localhost:3000/
-```
+\`\`\`
 
 The paid route returns `402` to an unpaid `curl`. To call it as a paying client,
 use an x402 client (`@x402/fetch`) with a funded wallet. Start on **testnet**
@@ -90,18 +91,19 @@ use an x402 client (`@x402/fetch`) with a funded wallet. Start on **testnet**
 
 ## Go to mainnet (real rewards)
 
-1. Get **free CDP keys** at https://portal.cdp.coinbase.com and put them in `.env`.
+1. **No facilitator keys needed** — Base Capital uses the keyless **xpay
+   facilitator** (`https://facilitator.xpay.sh`), non-custodial and gas-sponsored.
 2. Set `NETWORK_MODE=mainnet`.
-3. Confirm your Builder Code `bc_dyp4dswh` payout address is `artem00777.base.eth`
-   at https://base.dev → Settings → Builder Codes.
+3. Confirm your Builder Code `bc_kob8hqa0` payout address is `artem00777.base.eth`
+   at https://dashboard.base.org → your app → Builder Codes.
 4. Redeploy. That's the only switch.
 
 ## Deploy free (Vercel)
 
-```bash
+\`\`\`bash
 npm i -g vercel
 vercel
-```
+\`\`\`
 
 You get a free `*.vercel.app` domain — use it to verify the app on base.dev so
 attributed activity shows in your builder dashboard.
@@ -117,8 +119,8 @@ attributed activity shows in your builder dashboard.
 | Base RPC | free (`mainnet.base.org`) |
 | Market data (DexScreener 60/min, GeckoTerminal 30/min) | free, no keys |
 | Builder Code attribution | free (calldata) |
-| Facilitator (USDC on Base) | no facilitator fee |
-| Gas on paid calls | paid by the buyer |
+| Facilitator (xpay, USDC on Base) | no facilitator fee |
+| Gas on paid calls | sponsored by facilitator (gasless EIP-3009) |
 
 The in-memory cache keeps popular-token bursts under the free data rate limits.
 If volume outgrows the free tier, that means rewards are flowing — then add a
