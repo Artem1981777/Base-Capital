@@ -22,7 +22,7 @@ jobs:
         run: forge build
       - name: Deploy to Base mainnet
         env:
-          DEPLOYER_PRIVATE_KEY: $266
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: |
           if [ -z "$DEPLOYER_PRIVATE_KEY" ]; then echo "secret DEPLOYER_PRIVATE_KEY not set"; exit 1; fi
           forge create contracts/RiskStake.sol:RiskStake \
