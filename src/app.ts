@@ -7,6 +7,7 @@ import { config } from "./config.js"
 import { assessToken } from "./lib/risk.js"
 import { renderLanding } from "./landing.js"
 import { verdicts, stats } from "./data/log.js"
+import { readAgentStats, hasContract } from "./lib/stake.js"
 
 export function createApp() {
 	const app = express()
@@ -23,6 +24,8 @@ export function createApp() {
 			"GET /v1/signal/trending": `$${config.riskPriceUsd} USDC — risk-ranked trending tokens (agent-to-agent)`,
 			"GET /v1/feed": "free — recent autonomous agent verdicts",
 			"GET /v1/stats": "free — autonomous agent activity stats",
+			"GET /v1/onchain/stats":
+				"free — on-chain RiskStake reputation (staked, slashed, accuracy)",
 		},
 	}
 
@@ -92,6 +95,28 @@ export function createApp() {
 	app.get("/v1/feed", (req, res) => {
 		const limit = Math.min(Number(req.query.limit) || 25, 100)
 		res.json({ stats, verdicts: verdicts.slice(0, limit) })
+	})
+
+	// On-chain reputation (RiskStake): keyless read of the agent's staked track
+	// record on Base mainnet. Powers the landing's on-chain reputation block.
+	app.get("/v1/onchain/stats", async (_req, res) => {
+		if (!hasContract()) {
+			res.json({ available: false })
+			return
+		}
+		try {
+			const onchain = await readAgentStats()
+			res.json({
+				available: true,
+				network: config.network,
+				contract: config.riskStakeAddress,
+				agent: config.agentAddress,
+				explorer: `https://basescan.org/address/${config.riskStakeAddress}`,
+				stats: onchain,
+			})
+		} catch (err) {
+			res.json({ available: false, error: (err as Error).message })
+		}
 	})
 
 	// Facilitator: x402.org public facilitator on testnet; xpay (permissionless,
