@@ -6,6 +6,7 @@
 // scheduled stake job (agent/stake.ts), never in the request path.
 import {
 	createPublicClient,
+	fallback,
 	createWalletClient,
 	getAddress,
 	http,
@@ -147,7 +148,12 @@ export function usdToUnits(usd: string | number): bigint {
 }
 
 export function publicClient() {
-	return createPublicClient({ chain, transport: http(config.rpcUrl) })
+	return createPublicClient({ chain, transport: fallback([
+		http(config.rpcUrl, { retryCount: 5, retryDelay: 800 }),
+		http("https://base.llamarpc.com", { retryCount: 3 }),
+		http("https://base.publicnode.com", { retryCount: 3 }),
+		http("https://mainnet.base.org", { retryCount: 3 }),
+	]) })
 }
 
 export function hasContract(): boolean {
