@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@coinbase/x402": "latest",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@x402/core": "^2.16.0",
     "@x402/evm": "^2.16.0",
     "@x402/express": "latest",
@@ -18,7 +19,8 @@
     "@x402/fetch": "^2.16.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "viem": "^2.45.0"
+    "viem": "^2.45.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
