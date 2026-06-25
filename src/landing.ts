@@ -120,6 +120,21 @@ const risk = await res.json()
 // { score: 100, rating: "low", flags: [], data: { … } }</pre>
 </div>
 
+<div class="card" style="margin-top:16px">
+<h3 style="margin:0 0 10px;font-size:1rem">Use it in Claude or any MCP agent</h3>
+<p class="muted" style="margin:0 0 12px">Add our MCP server and your agent gets three tools out of the box: <b style="color:#cdd3da">risk_check</b> and <b style="color:#cdd3da">trending_signal</b> (paid) plus <b style="color:#cdd3da">preview</b> (free). Payments settle automatically in USDC — no keys, no signup.</p>
+<pre>// claude_desktop_config.json
+{
+  "mcpServers": {
+    "base-capital": {
+      "command": "npx",
+      "args": ["-y", "tsx", "/path/to/base-capital/mcp/server.ts"],
+      "env": { "PRIVATE_KEY": "0x…", "BASE_CAPITAL_URL": "https://base-capital.vercel.app" }
+    }
+  }
+}</pre>
+</div>
+
 <div class="card" id="agentcard" style="margin-top:16px">
 <h3 style="margin:0 0 4px;font-size:1rem">🤖 Autonomous Risk Agent</h3>
 <p class="muted" style="margin:0 0 14px">Scores its watchlist every hour, publishes a SHA256-signed verdict log, and exposes a paid agent-to-agent feed at <b style="color:#cdd3da">GET /v1/signal/trending</b>.</p>
