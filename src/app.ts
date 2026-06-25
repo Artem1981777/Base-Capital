@@ -51,6 +51,77 @@ export function createApp() {
 		res.json(manifest)
 	})
 
+	// Machine-readable discovery doc for x402 indexers (x402scan). Free, ungated.
+	app.get("/openapi.json", (_req, res) => {
+		const price = Number(config.riskPriceUsd).toFixed(6)
+		res.json({
+			openapi: "3.1.0",
+			info: {
+				title: "Base Capital",
+				version: "1.0.0",
+				description: "x402 onchain risk-intelligence API for AI trading agents on Base.",
+				"x-guidance": "Token risk intelligence for AI trading agents on Base. Call GET /v1/risk/{token} with an ERC-20 contract address for a 0-100 safety score plus honeypot/rug/ownership/liquidity flags (GoPlus-backed); every verdict is staked onchain. Call GET /v1/signal/trending for risk-ranked trending tokens. Both cost " + price + " USDC per call via x402 on " + config.network + ". Free preview at GET /v1/preview/{token}.",
+			},
+			servers: [{ url: "https://base-capital.vercel.app" }],
+			paths: {
+				"/v1/risk/{token}": {
+					get: {
+						operationId: "riskCheck",
+						summary: "Risk check - token safety score for a Base ERC-20",
+						tags: ["Risk"],
+						"x-payment-info": {
+							price: { mode: "fixed", currency: "USD", amount: price },
+							protocols: [{ x402: {} }],
+						},
+						parameters: [
+							{
+								name: "token",
+								in: "path",
+								required: true,
+								description: "ERC-20 token contract address on Base (0x-prefixed, 42 chars).",
+								schema: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" },
+							},
+						],
+						responses: {
+							"200": {
+								description: "Risk assessment for the token",
+								content: { "application/json": { schema: { type: "object", properties: { token: { type: "string" }, score: { type: "number" }, rating: { type: "string" }, flags: { type: "array", items: { type: "string" } } }, required: ["token", "score"] } } },
+							},
+							"402": { description: "Payment Required" },
+						},
+					},
+				},
+				"/v1/signal/trending": {
+					get: {
+						operationId: "trendingSignal",
+						summary: "Trending signal - risk-ranked trending tokens",
+						tags: ["Signal"],
+						"x-payment-info": {
+							price: { mode: "fixed", currency: "USD", amount: price },
+							protocols: [{ x402: {} }],
+						},
+						parameters: [
+							{
+								name: "limit",
+								in: "query",
+								required: false,
+								description: "Max number of tokens to return (default 10).",
+								schema: { type: "integer", minimum: 1, maximum: 50 },
+							},
+						],
+						responses: {
+							"200": {
+								description: "Risk-ranked list of trending tokens",
+								content: { "application/json": { schema: { type: "object", properties: { tokens: { type: "array", items: { type: "object" } } }, required: ["tokens"] } } },
+							},
+							"402": { description: "Payment Required" },
+						},
+					},
+				},
+			},
+		})
+	})
+
 	// Free, rate-limited preview powering the browser demo on "/". Identical
 	// scoring to the paid route but with no x402 payment. Soft in-memory guard;
 	// the 60s risk cache also absorbs repeats. Agent/production traffic uses the
