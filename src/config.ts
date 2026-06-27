@@ -9,7 +9,7 @@ export const config = {
 	mode,
 	isMainnet,
 	// CAIP-2 network id used by x402
-	network: isMainnet ? "eip155:8453" : "eip155:84532", // Base / Base Sepolia
+	network: (isMainnet ? "eip155:8453" : "eip155:84532") as "eip155:8453" | "eip155:84532", // Base / Base Sepolia
 	// Free public testnet facilitator vs xpay mainnet facilitator (keyless, no fee for USDC on Base)
 	facilitatorUrl: isMainnet
 		? "https://facilitator.xpay.sh"
