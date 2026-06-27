@@ -8,6 +8,7 @@ import { assessToken } from "./lib/risk.js"
 import { renderLanding } from "./landing.js"
 import { verdicts, stats } from "./data/log.js"
 import { readAgentStats, hasContract } from "./lib/stake.js"
+import { mountDiscovery } from "./wellknown.js"
 
 export function createApp() {
 	const app = express()
@@ -193,6 +194,8 @@ export function createApp() {
 	// Facilitator: x402.org public facilitator on testnet; xpay (permissionless,
 	// no API keys, gas-sponsored) on mainnet. Both non-custodial: USDC flows
 	// buyer -> payTo directly. URL is chosen in config by NETWORK_MODE.
+	mountDiscovery(app)
+
 	const facilitatorClient = new HTTPFacilitatorClient({
 		url: config.facilitatorUrl,
 	})
