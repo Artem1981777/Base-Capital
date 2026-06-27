@@ -3,3 +3,6 @@ dist
 .env
 .vercel
 *.log
+
+r.b64
+*.b64
