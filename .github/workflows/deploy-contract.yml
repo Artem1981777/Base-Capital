@@ -25,6 +25,6 @@ jobs:
           DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: |
           if [ -z "$DEPLOYER_PRIVATE_KEY" ]; then echo "secret DEPLOYER_PRIVATE_KEY not set"; exit 1; fi
-          forge create contracts/RiskStake.sol:RiskStake --rpc-url https://mainnet.base.org --private-key "$DEPLOYER_PRIVATE_KEY" --broadcast --json --constructor-args 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 0x45e029499424FCc76aFb55b3beE7D16116db0a97 | tee deploy-out.json
+          forge create contracts/RiskStake.sol:RiskStake --rpc-url https://mainnet.base.org --private-key "$DEPLOYER_PRIVATE_KEY" --broadcast --json --constructor-args 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 0x45e029499424FCc76aFb55b3beE7D16116db0a97 0x404d641eB58352c5AA23aF6b16d08f0C979f6778 | tee deploy-out.json
           echo "=== Deployed address ==="
           grep -o '"deployedTo":"[^"]*"' deploy-out.json || true
