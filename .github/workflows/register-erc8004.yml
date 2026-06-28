@@ -1,0 +1,44 @@
+name: Register ERC-8004
+on:
+  workflow_dispatch: {}
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Register agent in ERC-8004 Identity Registry
+        env:
+          RPC: https://mainnet.base.org
+          REG: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+          PK: $ secrets.DEPLOYER_PRIVATE_KEY 
+        run: |
+          set -e
+          SIGNER=$(cast wallet address --private-key "$PK")
+          echo "Signer (agent): $SIGNER"
+          echo "Gas balance (wei): $(cast balance "$SIGNER" --rpc-url "$RPC")"
+          echo "== register() =="
+          TX1=$(cast send "$REG" "register()" --rpc-url "$RPC" --private-key "$PK" --json)
+          TXH=$(echo "$TX1" | jq -r '.transactionHash')
+          echo "register tx: $TXH"
+          TOPIC=$(cast keccak "Registered(uint256,string,address)")
+          AIDHEX=$(echo "$TX1" | jq -r --arg t "$TOPIC" --arg a "$REG" '.logs[]? | select((.address|ascii_downcase)==($a|ascii_downcase)) | select(.topics[0]==$t) | .topics[1]' | head -n1)
+          if [ -z "$AIDHEX" ] || [ "$AIDHEX" = "null" ]; then
+            TT=$(cast keccak "Transfer(address,address,uint256)")
+            AIDHEX=$(echo "$TX1" | jq -r --arg t "$TT" --arg a "$REG" '.logs[]? | select((.address|ascii_downcase)==($a|ascii_downcase)) | select(.topics[0]==$t) | .topics[3]' | head -n1)
+          fi
+          if [ -z "$AIDHEX" ] || [ "$AIDHEX" = "null" ]; then echo "ERROR: cannot parse agentId"; echo "$TX1"; exit 1; fi
+          AGENTID=$(cast to-dec "$AIDHEX")
+          echo "AGENT_ID=$AGENTID"
+          echo "== build registration file (on-chain data URI) =="
+          printf '%s' '{"type":"https://eips.ethereum.org/EIPS/eip-8004#registration-v1","name":"Base Capital Risk Agent","description":"Autonomous on-chain risk agent for Base tokens. Scores rug and honeypot risk and stakes USDC behind every verdict via the RiskStake contract (skin-in-the-game), paid per call via x402. Wrong verdicts are slashed to treasury, correct verdicts returned - zero-trust, verifiable on-chain reputation.","image":"https://base-capital.vercel.app/og.png","services":[{"name":"web","endpoint":"https://base-capital.vercel.app/"}],"x402Support":true,"active":true,"registrations":[{"agentId":'"$AGENTID"',"agentRegistry":"eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"}],"supportedTrust":["crypto-economic","reputation"]}' > reg.json
+          cat reg.json; echo
+          DATAURI="data:application/json;base64,$(base64 -w0 reg.json)"
+          echo "== setAgentURI() =="
+          cast send "$REG" "setAgentURI(uint256,string)" "$AGENTID" "$DATAURI" --rpc-url "$RPC" --private-key "$PK"
+          echo "== read back =="
+          echo "owner: $(cast call "$REG" "ownerOf(uint256)(address)" "$AGENTID" --rpc-url "$RPC")"
+          echo "agentWallet: $(cast call "$REG" "getAgentWallet(uint256)(address)" "$AGENTID" --rpc-url "$RPC" || echo n/a)"
+          echo "tokenURI bytes: $(cast call "$REG" "tokenURI(uint256)(string)" "$AGENTID" --rpc-url "$RPC" | wc -c)"
+          echo "ERC8004_DONE agentId=$AGENTID registry=$REG chain=8453"
