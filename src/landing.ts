@@ -230,7 +230,7 @@ const risk = await res.json()
     if(link&&d.explorer)link.href=d.explorer;
     var s=d.stats||{};
     var acc=((s.accuracyBps||0)/100).toFixed(0)+'%';
-    el.innerHTML=stat('Verdicts staked',s.totalVerdicts||0)+stat('USDC staked','$'+(s.totalStakedUsd||0))+stat('Accuracy',acc)+stat('Slashed','$'+(s.totalSlashedUsd||0));
+    el.innerHTML=stat('Verdicts staked',s.totalVerdicts||0)+stat('USDC staked','$'+(s.totalStakedUsd||0))+stat('Accuracy',acc)+stat('Slashed','$'+(s.totalSlashedUsd||0))+stat('At risk','$'+(s.totalAtRiskUsd||0))+stat('Slash rate',((s.slashRateBps||0)/100).toFixed(0)+'%');
   }).catch(function(){el.innerHTML='<div class="hint err">On-chain stats unavailable.</div>';});
 })();
 </script>

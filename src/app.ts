@@ -9,6 +9,7 @@ import { renderLanding } from "./landing.js"
 import { verdicts, stats } from "./data/log.js"
 import { readAgentStats, hasContract } from "./lib/stake.js"
 import { mountDiscovery } from "./wellknown.js"
+import { backtest } from "./data/backtest.js"
 
 export function createApp() {
 	const app = express()
@@ -194,6 +195,43 @@ export function createApp() {
 	// Facilitator: x402.org public facilitator on testnet; xpay (permissionless,
 	// no API keys, gas-sponsored) on mainnet. Both non-custodial: USDC flows
 	// buyer -> payTo directly. URL is chosen in config by NETWORK_MODE.
+	// Per-address on-chain reputation: free, keyless read of any agent's
+	// staked track record on Base mainnet. Powers the landing "Track record"
+	// block and lets external agents verify on-chain accountability.
+	app.get("/v1/agent/:address", async (req, res) => {
+		if (!hasContract()) {
+			res.json({ available: false })
+			return
+		}
+		const address = req.params.address
+		if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+			res.status(400).json({ error: "invalid address" })
+			return
+		}
+		try {
+			const onchain = await readAgentStats(address)
+			res.json({
+				available: true,
+				address,
+				network: config.network,
+				contract: config.riskStakeAddress,
+				explorer: `https://basescan.org/address/${address}`,
+				stats: onchain,
+				source: "onchain:RiskStake.getAgentStats",
+				data_stale: false,
+				generatedAt: new Date().toISOString(),
+			})
+		} catch (err) {
+			res.json({
+				available: false,
+				address,
+				data_stale: true,
+				error: (err as Error).message,
+				generatedAt: new Date().toISOString(),
+			})
+		}
+	})
+
 	mountDiscovery(app)
 
 	const facilitatorClient = new HTTPFacilitatorClient({

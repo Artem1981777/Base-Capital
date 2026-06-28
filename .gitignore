@@ -6,3 +6,5 @@ dist
 
 r.b64
 *.b64
+out/
+cache/

@@ -33,7 +33,7 @@ export const config = {
 	// Deployed RiskStake contract: the agent stakes USDC behind every verdict.
 	riskStakeAddress:
 		process.env.RISKSTAKE_ADDRESS ??
-		(isMainnet ? "0x1E2806454d2a086120CCf09aA81a495d15e5Bd09" : ""),
+		(isMainnet ? "0x21d49dE1f154FF49608acbc750926e6d7Db22cCB" : ""),
 	// USDC token used for staking (6 decimals).
 	usdcAddress:
 		process.env.USDC_ADDRESS ??
@@ -47,7 +47,7 @@ export const config = {
 	// Private key for the staking agent (owner). Only read in the stake job, never shipped to the client.
 	agentPrivateKey: process.env.DEPLOYER_PRIVATE_KEY,
 	// USDC staked behind each verdict (string, human units).
-	agentStakeUsd: process.env.AGENT_STAKE_USD ?? "0.02",
+	agentStakeUsd: process.env.AGENT_STAKE_USD ?? "1",
 	// Max verdicts committed / resolved per stake run (budget guard).
 	maxCommitsPerRun: Number(process.env.MAX_COMMITS_PER_RUN ?? 3),
 	maxResolvesPerRun: Number(process.env.MAX_RESOLVES_PER_RUN ?? 3),
