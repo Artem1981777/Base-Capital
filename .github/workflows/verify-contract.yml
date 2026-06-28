@@ -1,0 +1,23 @@
+name: Verify RiskStake
+on:
+  workflow_dispatch: {}
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Write foundry.toml
+        run: printf '[profile.default]\nsrc="contracts"\nout="out"\nsolc="0.8.24"\noptimizer=true\noptimizer_runs=200\n' > foundry.toml
+      - name: Build
+        run: forge build --skip test
+      - name: Verify on Sourcify
+        run: |
+          forge verify-contract \
+            0x21d49dE1f154FF49608acbc750926e6d7Db22cCB \
+            contracts/RiskStake.sol:RiskStake \
+            --chain 8453 \
+            --verifier sourcify \
+            --constructor-args "$(cast abi-encode 'constructor(address,address,address)' 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 0x45e029499424FCc76aFb55b3beE7D16116db0a97 0x404d641eB58352c5AA23aF6b16d08f0C979f6778)" \
+            --watch
