@@ -12,9 +12,12 @@ jobs:
         env:
           RPC: https://mainnet.base.org
           REG: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
-          PK: $ secrets.DEPLOYER_PRIVATE_KEY 
+          PK: $222
         run: |
           set -e
+          PK="$(printf '%s' "$PK" | tr -d '[:space:]')"
+          case "$PK" in 0x*) ;; *) PK="0x$PK";; esac
+          echo "PK length (chars, incl 0x): ${#PK}"
           SIGNER=$(cast wallet address --private-key "$PK")
           echo "Signer (agent): $SIGNER"
           echo "Gas balance (wei): $(cast balance "$SIGNER" --rpc-url "$RPC")"
