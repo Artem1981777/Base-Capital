@@ -12,14 +12,19 @@ jobs:
         env:
           RPC: https://mainnet.base.org
           REG: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
-          PK: $222
+          PK: $333
         run: |
           set -e
           PK="$(printf '%s' "$PK" | tr -d '[:space:]')"
           case "$PK" in 0x*) ;; *) PK="0x$PK";; esac
           echo "PK length (chars, incl 0x): ${#PK}"
+          if [ "${#PK}" -ne 66 ]; then echo "ERROR: PK is not 66 chars (0x + 64 hex). Secret is wrong/empty."; exit 1; fi
           SIGNER=$(cast wallet address --private-key "$PK")
           echo "Signer (agent): $SIGNER"
+          EXPECT="0x404d641eb58352c5aa23af6b16d08f0c979f6778"
+          GOT="$(printf '%s' "$SIGNER" | tr 'A-Z' 'a-z')"
+          if [ "$GOT" != "$EXPECT" ]; then echo "ERROR: signer $SIGNER != expected agent 0x404d...6778 — wrong key in secret"; exit 1; fi
+          echo "signer matches expected agent OK"
           echo "Gas balance (wei): $(cast balance "$SIGNER" --rpc-url "$RPC")"
           echo "== register() =="
           TX1=$(cast send "$REG" "register()" --rpc-url "$RPC" --private-key "$PK" --json)
