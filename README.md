@@ -1,9 +1,13 @@
 # Base Capital
 
+> 🪪 **Agent identity (ERC-8004):** registered on Base mainnet — agentId `57556` in IdentityRegistry [`0x8004A169…a432`](https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432).
+> Owner & agent wallet `0x404d641eB58352c5AA23aF6b16d08f0C979f6778` · on-chain `tokenURI` metadata · [register tx](https://basescan.org/tx/0xf27f29322becb6a27c2dcc144e01f4f9d5a0991506e9aadad85887f29b625bbf).
+
+
 **On-chain risk intelligence for Base — an autonomous agent that stakes real USDC behind every verdict, and a paid x402 API that AI trading agents can call before they swap.**
 
 - 🌐 Live app: https://base-capital.vercel.app
-- 🔗 RiskStake contract (verified): https://basescan.org/address/0x1E2806454d2a086120CCf09aA81a495d15e5Bd09#code
+- 🔗 RiskStake contract (verified): https://basescan.org/address/0x21d49dE1f154FF49608acbc750926e6d7Db22cCB#code
 - 🏗 Built on Base mainnet · paid in USDC over [x402](https://www.x402.org) · attributed to Builder Code `bc_kob8hqa0`
 
 ---

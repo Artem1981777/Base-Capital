@@ -71,6 +71,7 @@ pre{background:#0a0c0f;border:1px solid #20242b;border-radius:12px;padding:16px;
 <div class="hero">
 <div class="wrap">
 <div class="badge">Powered by x402 · ${opts.network}</div>
+<a class="badge" href="https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432" target="_blank" rel="noopener" style="text-decoration:none;margin-left:8px">🪪 ERC-8004 · agent #57556</a>
 <h1>Base Capital</h1>
 <div class="tag">x402 onchain risk intelligence for AI trading agents on Base</div>
 <p class="sub">A pay-per-call API that returns a 0–100 safety score for any Base token — liquidity, LP depth, ownership, pair age and holder-concentration checks. Built for autonomous agents, usable by anyone.</p>
