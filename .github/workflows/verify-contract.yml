@@ -20,8 +20,10 @@ jobs:
       - name: Build
         run: forge build --skip test
       - name: Verify on Sourcify
+        env:
+          ADDR_INPUT: ${{ inputs.address }}
         run: |
-          ADDR="$ github.event.inputs.address "
+          ADDR="$ADDR_INPUT"
           if [ -z "$ADDR" ]; then echo "address input required"; exit 1; fi
           forge verify-contract \
             "$ADDR" \
