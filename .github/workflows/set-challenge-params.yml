@@ -7,7 +7,7 @@ jobs:
     steps:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-      - name: setChallengeParams window=1h
+      - name: setParams
         env:
           PK: {{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: |
@@ -16,7 +16,6 @@ jobs:
           RPC=https://mainnet.base.org
           echo "== before =="
           cast call $C "challengeWindow()(uint40)" --rpc-url $RPC
-          echo "== sending setChallengeParams(3600,1000000,5000) =="
           cast send $C "setChallengeParams(uint40,uint96,uint16)" 3600 1000000 5000 --rpc-url $RPC --private-key "$PK"
           echo "== after =="
           cast call $C "challengeWindow()(uint40)" --rpc-url $RPC
