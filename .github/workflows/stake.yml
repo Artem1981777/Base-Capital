@@ -24,7 +24,7 @@ jobs:
       - name: Stake + resolve verdicts on-chain
         env:
           NETWORK_MODE: mainnet
-          DEPLOYER_PRIVATE_KEY: $ secrets.DEPLOYER_PRIVATE_KEY 
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: npx tsx agent/stake.ts
       - name: Commit proof snapshots
         if: always()
