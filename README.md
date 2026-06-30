@@ -79,7 +79,7 @@ Key functions:
 **Optimistic resolution flow:**
 
 1. `commitVerdict(id, token, rating, stake)` — the signer must be a **registered agentId** (`registerAgent` / `rotateAgentSigner`); reputation accrues to the agentId.
-2. `proposeResolution(id, correct, proofHash, ruleVersion, snapshotURI)` — **`onlyOracle`**, maturity-guarded. Posts the outcome **optimistically** and opens a **24h challenge window**; `proofHash`, on-chain `ruleVersion`, and the `snapshotURI` input pointer are all stored on-chain.
+2. `proposeResolution(id, correct, proofHash, ruleVersion, snapshotURI)` — **`onlyOracle`**, maturity-guarded. Posts the outcome **optimistically** and opens a **1h challenge window**; `proofHash`, on-chain `ruleVersion`, and the `snapshotURI` input pointer are all stored on-chain.
 3. `challengeResolution(id)` — **anyone** can dispute within the window by posting a USDC bond.
 4. `finalize(id)` — after the window elapses unchallenged, anyone can settle: correct → stake returned; wrong → slashed to treasury.
 5. `resolveChallenge(id, challengeSucceeded)` — **`onlyOwner`** arbitrates a dispute: a successful challenge flips the outcome, returns the bond, and pays the challenger `challengeRewardBps` (default **50%**) of the slashed stake; a failed challenge sends the bond to the treasury.
@@ -103,7 +103,7 @@ At maturity the token is re-assessed live and classified as a *hard rug* if any 
 
 The agent computes a `keccak256` **proof hash** over the resolution snapshot (token, score, flags, rule version) and then:
 
-1. passes it to `proposeResolution(...)` (settled by `finalize` after the 24h challenge window) so it is stored **on-chain**, and
+1. passes it to `proposeResolution(...)` (settled by `finalize` after the 1h challenge window) so it is stored **on-chain**, and
 2. prints it to the public CI logs.
 
 Anyone can recompute the hash from the published verdict plus this rule and confirm the resolution was not tampered with.
@@ -308,8 +308,8 @@ Upgraded the on-chain layer to **v3** and cut the live agent over to it: a backw
 
 - **Contract:** [`0x0eC7de61eE08659743A896FeB15BfB99361f440e`](https://basescan.org/address/0x0eC7de61eE08659743A896FeB15BfB99361f440e) — deploy tx [`0x729df4d4…91e9`](https://basescan.org/tx/0x729df4d48c2ced3c6ee7dc1c70653a9bf64dcc3dd696a0bec5fd167a376291e9), **verified on Sourcify (`exact_match`)**.
 - **Agent registered:** agentId `57556` bound to signer `0x404d…6778` — [register tx](https://basescan.org/tx/0x2f9a0b2d2f533c0e89e03a3041c1543a6bc2ac07d640abf78a803d52d968fe6d).
-- **What's new:** `proposeResolution → challengeResolution → finalize` (24h window, bonded disputes, challenger reward), reputation keyed by agentId, on-chain `ruleVersion` + `snapshotURI` for reproducible proofs, and an O(1) pending index.
-- **Migration:** TS layer + hourly cron cut over to v3 (type-checked, validated end-to-end on mainnet). The v2 contract `0x21d4…2cCB` is retained as legacy track record.
+- **What's new:** `proposeResolution → challengeResolution → finalize` (1h challenge window, bonded disputes, challenger reward), reputation keyed by agentId, on-chain `ruleVersion` + `snapshotURI` for reproducible proofs, and an O(1) pending index.
+- **Migration:** TS layer + hourly cron cut over to v3 (type-checked, validated end-to-end on mainnet). The v2 contract `0x21d4…2cCB` is retained as legacy track record. The challenge window was later tuned to **1h** via setChallengeParams (tx 0xed2a0ce8623743293be7ed7819fe7a97b2f7710200db9578bfd945d09aa40c25) to recycle staking capital ~24x faster while keeping bonded disputes intact.
 
 ### 2026-06-27 — First live x402 payment
 
