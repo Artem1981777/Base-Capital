@@ -34,6 +34,7 @@ import {
   VerdictStatus,
 } from "../src/lib/stake.js"
 import { keccak256, toBytes, type Hex } from "viem"
+import { mkdirSync, writeFileSync } from "node:fs"
 
 // On-chain rule version bound into every proof snapshot. Bump when the
 // resolution logic changes so historical proofs stay attributable.
@@ -144,6 +145,8 @@ async function processPending(): Promise<{ proposed: number; finalized: number }
       }
       const canonical = JSON.stringify(snapshot)
       const proofHash = keccak256(toBytes(canonical))
+        mkdirSync(`proofs`, { recursive: true })
+        writeFileSync(`proofs/${id}.json`, canonical)
       const snapshotURI = `proof:${proofHash}`
       console.log(`proof ${id.slice(0, 10)} ${proofHash} :: ${canonical}`)
 
