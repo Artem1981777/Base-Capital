@@ -7,7 +7,7 @@
 **On-chain risk intelligence for Base — an autonomous agent that stakes real USDC behind every verdict, and a paid x402 API that AI trading agents can call before they swap.**
 
 - 🌐 Live app: https://base-capital.vercel.app
-- 🔗 RiskStake contract (verified): https://basescan.org/address/0x21d49dE1f154FF49608acbc750926e6d7Db22cCB#code
+- 🔗 RiskStake v1.0 contract (verified) — see v3 below: https://basescan.org/address/0x21d49dE1f154FF49608acbc750926e6d7Db22cCB#code
 - 🏗 Built on Base mainnet · paid in USDC over [x402](https://www.x402.org) · attributed to Builder Code `bc_kob8hqa0`
 
 ---
@@ -48,7 +48,7 @@ Minimal, audited-style staking contract (single file, no external dependencies).
 
 | | |
 |---|---|
-| Contract | [`0x21d49dE1f154FF49608acbc750926e6d7Db22cCB`](https://basescan.org/address/0x21d49dE1f154FF49608acbc750926e6d7Db22cCB) (v1.0) |
+| Contract | [`0x21d49dE1f154FF49608acbc750926e6d7Db22cCB`](https://basescan.org/address/0x21d49dE1f154FF49608acbc750926e6d7Db22cCB) (v1.0 — legacy; superseded by v3 below) |
 | Network | Base mainnet (`eip155:8453`) |
 | Stake asset | USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | Roles | `owner` (admin) · `oracle` (resolves) · `treasury` (receives slashes) — three independent on-chain roles |
@@ -65,6 +65,33 @@ Key functions:
 
 ---
 
+## On-chain layer v3 — optimistic resolution & agentId reputation (live)
+
+> **v3 is the current deployment.** It supersedes the one-step `resolveVerdict` flow above with **optimistic resolution + a public challenge window**, binds reputation to the agent's **ERC-8004 agentId** (not a raw address, so the signing key can rotate without losing track record), and adds **independently reproducible proofs** (on-chain rule version + input-snapshot pointer). Roles, stake bounds and the 48h timelocked rescue are unchanged.
+
+| | |
+|---|---|
+| Contract (v3) | [`0x0eC7de61eE08659743A896FeB15BfB99361f440e`](https://basescan.org/address/0x0eC7de61eE08659743A896FeB15BfB99361f440e) — **verified (Sourcify `exact_match`)** |
+| Legacy (v2) | [`0x21d49dE1f154FF49608acbc750926e6d7Db22cCB`](https://basescan.org/address/0x21d49dE1f154FF49608acbc750926e6d7Db22cCB) — original track record, retained read-only |
+| Agent identity | ERC-8004 agentId `57556` · signer `0x404d641eB58352c5AA23aF6b16d08f0C979f6778` |
+| Network · stake asset | Base mainnet (`eip155:8453`) · USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+
+**Optimistic resolution flow:**
+
+1. `commitVerdict(id, token, rating, stake)` — the signer must be a **registered agentId** (`registerAgent` / `rotateAgentSigner`); reputation accrues to the agentId.
+2. `proposeResolution(id, correct, proofHash, ruleVersion, snapshotURI)` — **`onlyOracle`**, maturity-guarded. Posts the outcome **optimistically** and opens a **24h challenge window**; `proofHash`, on-chain `ruleVersion`, and the `snapshotURI` input pointer are all stored on-chain.
+3. `challengeResolution(id)` — **anyone** can dispute within the window by posting a USDC bond.
+4. `finalize(id)` — after the window elapses unchallenged, anyone can settle: correct → stake returned; wrong → slashed to treasury.
+5. `resolveChallenge(id, challengeSucceeded)` — **`onlyOwner`** arbitrates a dispute: a successful challenge flips the outcome, returns the bond, and pays the challenger `challengeRewardBps` (default **50%**) of the slashed stake; a failed challenge sends the bond to the treasury.
+
+- `getAgentStats(agentId)` — public read keyed by agentId: `totalVerdicts, totalStaked, totalSlashed, totalReturned, correct, wrong, accuracyBps, totalAtRisk, slashRateBps, identityAgeSeconds`.
+- `pendingCount()` / `getPending(offset, limit)` — **O(1)** pending index (swap-pop), so enumeration cost no longer grows with history.
+- `setChallengeParams(window, bond, rewardBps)` — owner-tunable challenge economics.
+
+Tests: Foundry suite **16/16 passing** (`forge test --via-ir`) — commit, register/rotate, propose/finalize, challenge/resolve (both outcomes), bond accounting, maturity & bound guards, and the O(1) pending invariants.
+
+---
+
 ## Resolution policy
 
 Verdicts are resolved by a **deterministic rule**, not human discretion — anyone can predict and verify the outcome. The rule below is the single source of truth for every resolution.
@@ -76,7 +103,7 @@ At maturity the token is re-assessed live and classified as a *hard rug* if any 
 
 The agent computes a `keccak256` **proof hash** over the resolution snapshot (token, score, flags, rule version) and then:
 
-1. passes it to `resolveVerdict(...)` so it is stored **on-chain**, and
+1. passes it to `proposeResolution(...)` (settled by `finalize` after the 24h challenge window) so it is stored **on-chain**, and
 2. prints it to the public CI logs.
 
 Anyone can recompute the hash from the published verdict plus this rule and confirm the resolution was not tampered with.
@@ -274,6 +301,15 @@ Verified end-to-end: agents discover the endpoints via the discovery document, p
 ---
 
 ## 🏁 Milestones
+
+### 2026-06-30 — RiskStake v3 live (optimistic resolution + agentId reputation)
+
+Upgraded the on-chain layer to **v3** and cut the live agent over to it: a backward-compatible commit path, optimistic resolution with a public challenge window, and ERC-8004 agentId-bound reputation.
+
+- **Contract:** [`0x0eC7de61eE08659743A896FeB15BfB99361f440e`](https://basescan.org/address/0x0eC7de61eE08659743A896FeB15BfB99361f440e) — deploy tx [`0x729df4d4…91e9`](https://basescan.org/tx/0x729df4d48c2ced3c6ee7dc1c70653a9bf64dcc3dd696a0bec5fd167a376291e9), **verified on Sourcify (`exact_match`)**.
+- **Agent registered:** agentId `57556` bound to signer `0x404d…6778` — [register tx](https://basescan.org/tx/0x2f9a0b2d2f533c0e89e03a3041c1543a6bc2ac07d640abf78a803d52d968fe6d).
+- **What's new:** `proposeResolution → challengeResolution → finalize` (24h window, bonded disputes, challenger reward), reputation keyed by agentId, on-chain `ruleVersion` + `snapshotURI` for reproducible proofs, and an O(1) pending index.
+- **Migration:** TS layer + hourly cron cut over to v3 (type-checked, validated end-to-end on mainnet). The v2 contract `0x21d4…2cCB` is retained as legacy track record.
 
 ### 2026-06-27 — First live x402 payment
 
