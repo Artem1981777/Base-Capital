@@ -311,6 +311,9 @@ Upgraded the on-chain layer to **v3** and cut the live agent over to it: a backw
 - **What's new:** `proposeResolution → challengeResolution → finalize` (1h challenge window, bonded disputes, challenger reward), reputation keyed by agentId, on-chain `ruleVersion` + `snapshotURI` for reproducible proofs, and an O(1) pending index.
 - **Migration:** TS layer + hourly cron cut over to v3 (type-checked, validated end-to-end on mainnet). The v2 contract `0x21d4…2cCB` is retained as legacy track record. The challenge window was later tuned to **1h** via setChallengeParams (tx 0xed2a0ce8623743293be7ed7819fe7a97b2f7710200db9578bfd945d09aa40c25) to recycle staking capital ~24x faster while keeping bonded disputes intact.
 
+### 2026-06-30 - First v3 optimistic resolution on-chain
+The autonomous agent proposed its first optimistic resolution on the v3 RiskStake contract: token `0x4ed4e862...efed` scored **88/100 (SAFE)**, proposed **CORRECT** via `proposeResolution` (tx `0x9f364159c0a5cae23d729a25bcacc8c971e96d4d4281a1db5af33a48935347bc`). The verdict then sits in the **1h challenge window**; absent a successful dispute, `finalize` settles it to `Correct` and the $1 stake returns to the agent - demonstrating the self-recycling stake loop on ~$1.3 of working capital (gas-only cost).
+
 ### 2026-06-27 — First live x402 payment
 
 An external AI agent (Poncho — https://tryponcho.com) autonomously **discovered, paid for, and called** Base Capital over x402 on Base mainnet — fully end-to-end, no human in the loop.
