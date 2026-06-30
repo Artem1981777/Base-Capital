@@ -1,13 +1,14 @@
-// On-chain staking against the RiskStake contract (v2).
+// On-chain staking against the RiskStake contract (v3).
 //
 // Read paths use a keyless public client and are safe to call from the web
 // server (powering the landing's on-chain reputation block). Write paths
-// (commit / resolve) require the agent's private key and only run in the
-// scheduled stake job (agent/stake.ts), never in the request path.
+// (commit / propose / finalize) require the agent's private key and only run
+// in the scheduled stake job (agent/stake.ts), never in the request path.
 //
-// v2 ABI: separated roles (owner/oracle/treasury), resolution carries an
-// on-chain proofHash, a maturity guard, configurable stake bounds, pending
-// views, and a 48h time-locked rescue.
+// v3 ABI: agentId-bound reputation (ERC-8004), optimistic resolution with a
+// public 24h challenge window (proposeResolution -> finalize), on-chain rule
+// versioning + snapshot pointer for reproducible proofs, an O(1) pending
+// index, and a 48h time-locked rescue. Roles stay separated.
 import {
   createPublicClient,
   fallback,
@@ -23,7 +24,6 @@ import { base, baseSepolia } from "viem/chains"
 import { config } from "../config.js"
 
 // Base Builder Code (ERC-8021) attribution for agent onchain txs.
-// Appended to calldata; contracts ignore extra bytes (no contract change).
 const BUILDER_CODE_SUFFIX = Attribution.toDataSuffix({ codes: [config.builderCode] })
 
 const chain = config.isMainnet ? base : baseSepolia
@@ -42,13 +42,39 @@ export const riskStakeAbi = [
     outputs: [],
   },
   {
-    name: "resolveVerdict",
+    name: "proposeResolution",
     type: "function",
     stateMutability: "nonpayable",
     inputs: [
       { name: "id", type: "bytes32" },
       { name: "correct", type: "bool" },
       { name: "proofHash", type: "bytes32" },
+      { name: "ruleVersion", type: "uint16" },
+      { name: "snapshotURI", type: "string" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "finalize",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "id", type: "bytes32" }],
+    outputs: [],
+  },
+  {
+    name: "challengeResolution",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "id", type: "bytes32" }],
+    outputs: [],
+  },
+  {
+    name: "registerAgent",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "agentId", type: "uint256" },
+      { name: "signer", type: "address" },
     ],
     outputs: [],
   },
@@ -84,26 +110,54 @@ export const riskStakeAbi = [
     outputs: [{ type: "bytes32" }],
   },
   {
+    name: "agentSigner",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "uint256" }],
+    outputs: [{ type: "address" }],
+  },
+  {
+    name: "signerAgentId",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    name: "agentRegisteredAt",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "uint256" }],
+    outputs: [{ type: "uint40" }],
+  },
+  {
     name: "verdicts",
     type: "function",
     stateMutability: "view",
     inputs: [{ name: "", type: "bytes32" }],
     outputs: [
+      { name: "agentId", type: "uint256" },
       { name: "agent", type: "address" },
       { name: "token", type: "address" },
       { name: "rating", type: "uint8" },
+      { name: "ruleVersion", type: "uint16" },
       { name: "stake", type: "uint96" },
       { name: "committedAt", type: "uint40" },
       { name: "resolvedAt", type: "uint40" },
+      { name: "challengeDeadline", type: "uint40" },
       { name: "status", type: "uint8" },
+      { name: "proposedCorrect", type: "bool" },
+      { name: "challenger", type: "address" },
+      { name: "challengeBond", type: "uint96" },
       { name: "proofHash", type: "bytes32" },
+      { name: "snapshotURI", type: "string" },
     ],
   },
   {
     name: "getAgentStats",
     type: "function",
     stateMutability: "view",
-    inputs: [{ name: "agent", type: "address" }],
+    inputs: [{ name: "agentId", type: "uint256" }],
     outputs: [
       { name: "totalVerdicts", type: "uint256" },
       { name: "totalStaked", type: "uint256" },
@@ -114,6 +168,7 @@ export const riskStakeAbi = [
       { name: "accuracyBps", type: "uint256" },
       { name: "totalAtRisk", type: "uint256" },
       { name: "slashRateBps", type: "uint256" },
+      { name: "identityAgeSeconds", type: "uint256" },
     ],
   },
 ] as const
@@ -151,8 +206,10 @@ export const erc20Abi = [
 export const VerdictStatus = {
   None: 0,
   Pending: 1,
-  Correct: 2,
-  Wrong: 3,
+  Proposed: 2,
+  Challenged: 3,
+  Correct: 4,
+  Wrong: 5,
 } as const
 
 export type OnchainAgentStats = {
@@ -165,6 +222,7 @@ export type OnchainAgentStats = {
   accuracyBps: number
   totalAtRiskUsd: number
   slashRateBps: number
+  identityAgeSeconds: number
 }
 
 const USDC_DECIMALS = 6n
@@ -192,16 +250,16 @@ export function hasContract(): boolean {
   return /^0x[0-9a-fA-F]{40}$/.test(config.riskStakeAddress)
 }
 
-/** Keyless read of an agent's on-chain reputation. */
+/** Keyless read of an agent's on-chain reputation (by ERC-8004 agentId). */
 export async function readAgentStats(
-  agent: string = config.agentAddress,
+  agentId: number = config.agentId,
 ): Promise<OnchainAgentStats> {
   const client = publicClient()
   const r = (await client.readContract({
     address: getAddress(config.riskStakeAddress),
     abi: riskStakeAbi,
     functionName: "getAgentStats",
-    args: [getAddress(agent)],
+    args: [BigInt(agentId)],
   })) as readonly bigint[]
   return {
     totalVerdicts: Number(r[0]),
@@ -213,6 +271,7 @@ export async function readAgentStats(
     accuracyBps: Number(r[6]),
     totalAtRiskUsd: toUsd(r[7]),
     slashRateBps: Number(r[8]),
+    identityAgeSeconds: Number(r[9]),
   }
 }
 
@@ -241,7 +300,6 @@ export async function ensureAllowance(need: bigint): Promise<void> {
     args: [account.address, getAddress(config.riskStakeAddress)],
   })) as bigint
   if (current >= need) return
-  // Approve a generous batch (100 USDC) so we don't approve every commit.
   const hash = await wallet.writeContract({
     address: getAddress(config.usdcAddress),
     abi: erc20Abi,
@@ -266,14 +324,21 @@ export async function usdcBalance(): Promise<bigint> {
 
 export type OnchainVerdict = {
   id: Hex
+  agentId: number
   agent: Address
   token: Address
   rating: number
+  ruleVersion: number
   stake: bigint
   committedAt: number
   resolvedAt: number
+  challengeDeadline: number
   status: number
+  proposedCorrect: boolean
+  challenger: Address
+  challengeBond: bigint
   proofHash: Hex
+  snapshotURI: string
 }
 
 export async function getVerdict(id: Hex): Promise<OnchainVerdict> {
@@ -283,17 +348,27 @@ export async function getVerdict(id: Hex): Promise<OnchainVerdict> {
     abi: riskStakeAbi,
     functionName: "verdicts",
     args: [id],
-  })) as readonly [Address, Address, number, bigint, number, number, number, Hex]
+  })) as readonly [
+    bigint, Address, Address, number, number, bigint, number, number,
+    number, number, boolean, Address, bigint, Hex, string,
+  ]
   return {
     id,
-    agent: r[0],
-    token: r[1],
-    rating: Number(r[2]),
-    stake: r[3],
-    committedAt: Number(r[4]),
-    resolvedAt: Number(r[5]),
-    status: Number(r[6]),
-    proofHash: r[7],
+    agentId: Number(r[0]),
+    agent: r[1],
+    token: r[2],
+    rating: Number(r[3]),
+    ruleVersion: Number(r[4]),
+    stake: r[5],
+    committedAt: Number(r[6]),
+    resolvedAt: Number(r[7]),
+    challengeDeadline: Number(r[8]),
+    status: Number(r[9]),
+    proposedCorrect: r[10],
+    challenger: r[11],
+    challengeBond: r[12],
+    proofHash: r[13],
+    snapshotURI: r[14],
   }
 }
 
@@ -317,7 +392,7 @@ export async function listVerdictIds(): Promise<Hex[]> {
   return ids
 }
 
-/** Number of still-pending (unresolved) verdicts. */
+/** Number of still-unsettled (pending or proposed) verdicts. */
 export async function pendingCount(): Promise<number> {
   const client = publicClient()
   const n = (await client.readContract({
@@ -328,7 +403,7 @@ export async function pendingCount(): Promise<number> {
   return Number(n)
 }
 
-/** Page through pending verdict ids. */
+/** Page through unsettled verdict ids (O(1)-indexed). */
 export async function getPending(
   offset: bigint = 0n,
   limit: bigint = 200n,
@@ -362,20 +437,75 @@ export async function commitVerdict(
   return hash
 }
 
-export async function resolveVerdict(
+/** Optimistically propose a resolution; opens the on-chain challenge window. */
+export async function proposeResolution(
   id: Hex,
   correct: boolean,
   proofHash: Hex,
+  ruleVersion: number,
+  snapshotURI: string,
 ): Promise<Hex> {
   const { wallet } = agentWallet()
   const client = publicClient()
   const hash = await wallet.writeContract({
     address: getAddress(config.riskStakeAddress),
     abi: riskStakeAbi,
-    functionName: "resolveVerdict",
-    args: [id, correct, proofHash],
+    functionName: "proposeResolution",
+    args: [id, correct, proofHash, ruleVersion, snapshotURI],
     dataSuffix: BUILDER_CODE_SUFFIX,
   })
   await client.waitForTransactionReceipt({ hash })
   return hash
+}
+
+/** Finalize a proposed verdict whose challenge window has elapsed unchallenged. */
+export async function finalize(id: Hex): Promise<Hex> {
+  const { wallet } = agentWallet()
+  const client = publicClient()
+  const hash = await wallet.writeContract({
+    address: getAddress(config.riskStakeAddress),
+    abi: riskStakeAbi,
+    functionName: "finalize",
+    args: [id],
+    dataSuffix: BUILDER_CODE_SUFFIX,
+  })
+  await client.waitForTransactionReceipt({ hash })
+  return hash
+}
+
+/** Resolve a signer address to its registered ERC-8004 agentId (0 if none). */
+export async function agentIdOf(address: string): Promise<number> {
+  const client = publicClient()
+  const id = (await client.readContract({
+    address: getAddress(config.riskStakeAddress),
+    abi: riskStakeAbi,
+    functionName: "signerAgentId",
+    args: [getAddress(address)],
+  })) as bigint
+  return Number(id)
+}
+
+/** Keyless reputation read for a signer address (resolves address -> agentId). */
+export async function readAgentStatsByAddress(
+  address: string,
+): Promise<OnchainAgentStats & { agentId: number; registered: boolean }> {
+  const agentId = await agentIdOf(address)
+  if (agentId === 0) {
+    return {
+      agentId: 0,
+      registered: false,
+      totalVerdicts: 0,
+      totalStakedUsd: 0,
+      totalSlashedUsd: 0,
+      totalReturnedUsd: 0,
+      correct: 0,
+      wrong: 0,
+      accuracyBps: 0,
+      totalAtRiskUsd: 0,
+      slashRateBps: 0,
+      identityAgeSeconds: 0,
+    }
+  }
+  const stats = await readAgentStats(agentId)
+  return { agentId, registered: true, ...stats }
 }

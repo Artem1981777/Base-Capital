@@ -1,14 +1,19 @@
-// Autonomous on-chain staking pass for the risk agent.
+// Autonomous on-chain staking pass for the risk agent (v3).
 //
 // 1. Commits fresh verdicts on-chain (USDC skin-in-the-game) — capped per run.
-// 2. Resolves matured pending verdicts with a DETERMINISTIC, verifiable rule:
-//      SAFE  verdict -> correct iff (no hard-rug signal) AND score >= 75
-//      RISKY/RUG     -> correct iff (hard-rug signal) OR score < 75
-//    where hard-rug = honeypot | cannot_sell_all | cannot_buy.
-//    A proofHash (keccak256 of the canonical maturity-time snapshot) is
-//    committed on-chain and the full snapshot is printed to the public CI log,
-//    so every resolution is independently reproducible.
+// 2. Optimistically PROPOSES resolutions for matured pending verdicts with a
+//    DETERMINISTIC, verifiable rule (below). proofHash (keccak256 of the
+//    canonical snapshot) + ruleVersion + snapshot pointer are committed
+//    on-chain; the full snapshot is printed to the public CI log so every
+//    resolution is independently reproducible. Anyone may challenge within the
+//    on-chain challenge window by posting a bond.
+// 3. FINALIZES proposed verdicts once the window elapses unchallenged:
 //    Correct -> stake returned; Wrong -> stake slashed to treasury.
+//
+// Rule:
+//   SAFE      -> correct iff (no hard-rug signal) AND score >= 75
+//   RISKY/RUG -> correct iff (hard-rug signal) OR score < 75
+//   hard-rug = honeypot | cannot_sell_all | cannot_buy | sim_honeypot | sim_extreme_sell_tax
 //
 // Runs in the scheduled "Stake" GitHub Actions job with DEPLOYER_PRIVATE_KEY.
 import { config } from "../src/config.js"
@@ -18,16 +23,21 @@ import { verdicts as logVerdicts } from "../src/data/log.js"
 import {
   commitVerdict,
   ensureAllowance,
+  finalize,
+  getPending,
   getVerdict,
   hasContract,
-  listVerdictIds,
+  proposeResolution,
   readAgentStats,
-  resolveVerdict,
   usdcBalance,
   usdToUnits,
   VerdictStatus,
 } from "../src/lib/stake.js"
 import { keccak256, toBytes, type Hex } from "viem"
+
+// On-chain rule version bound into every proof snapshot. Bump when the
+// resolution logic changes so historical proofs stay attributable.
+const RULE_VERSION = 1
 
 const RATING: Record<string, number> = { SAFE: 0, RISKY: 1, LIKELY_RUG: 2 }
 const HARD_RUG_FLAGS = ["honeypot", "cannot_sell_all", "cannot_buy", "sim_honeypot", "sim_extreme_sell_tax"]
@@ -66,39 +76,57 @@ async function commitFresh(stakeUnits: bigint): Promise<number> {
   return committed
 }
 
-async function resolveMatured(): Promise<number> {
-  let resolved = 0
+// Walk the O(1) pending index: PROPOSE matured Pending verdicts and FINALIZE
+// Proposed verdicts whose challenge window has closed. Challenged verdicts are
+// left for the owner/arbiter (resolveChallenge), never auto-handled here.
+async function processPending(): Promise<{ proposed: number; finalized: number }> {
+  let proposed = 0
+  let finalized = 0
   const nowSec = Math.floor(Date.now() / 1000)
   const minAgeSec = config.resolveAfterMinutes * 60
-  const ids = await listVerdictIds()
+  let ids: Hex[]
+  try {
+    ids = await getPending(0n, 200n)
+  } catch (e) {
+    console.error("getPending failed:", (e as Error).message)
+    return { proposed, finalized }
+  }
   for (const id of ids) {
-    if (resolved >= config.maxResolvesPerRun) break
+    if (proposed >= config.maxResolvesPerRun && finalized >= config.maxResolvesPerRun) break
     let v
     try {
       v = await getVerdict(id)
     } catch (e) {
-      console.error(
-        `skip ${id.slice(0, 10)} (read failed):`,
-        (e as Error).message,
-      )
+      console.error(`skip ${id.slice(0, 10)} (read failed):`, (e as Error).message)
       continue
     }
+
+    if (v.status === VerdictStatus.Proposed) {
+      if (finalized >= config.maxResolvesPerRun) continue
+      if (nowSec <= v.challengeDeadline) continue
+      try {
+        const hash = await finalize(id)
+        finalized++
+        console.log(
+          `finalized ${id.slice(0, 10)} -> ${v.proposedCorrect ? "CORRECT" : "WRONG"} tx ${hash}`,
+        )
+      } catch (e) {
+        console.error(`finalize failed ${id.slice(0, 10)}:`, (e as Error).message)
+      }
+      continue
+    }
+
     if (v.status !== VerdictStatus.Pending) continue
+    if (proposed >= config.maxResolvesPerRun) continue
     if (nowSec - v.committedAt < minAgeSec) continue
     try {
       const r = await assessToken(v.token)
       const hardRug = HARD_RUG_FLAGS.some((f) => r.flags.includes(f))
       const saidSafe = v.rating === 0
-      // Deterministic resolution rule (see file header).
-      const correct = saidSafe
-        ? !hardRug && r.score >= 75
-        : hardRug || r.score < 75
+      const correct = saidSafe ? !hardRug && r.score >= 75 : hardRug || r.score < 75
 
-      // Canonical, reproducible snapshot of the inputs the decision used.
-      // keccak256(snapshot) is committed on-chain; the full JSON is logged
-      // publicly so anyone can recompute and verify the hash.
       const snapshot = {
-        v: 1,
+        v: RULE_VERSION,
         id,
         token: v.token.toLowerCase(),
         rating: v.rating,
@@ -116,18 +144,19 @@ async function resolveMatured(): Promise<number> {
       }
       const canonical = JSON.stringify(snapshot)
       const proofHash = keccak256(toBytes(canonical))
+      const snapshotURI = `proof:${proofHash}`
       console.log(`proof ${id.slice(0, 10)} ${proofHash} :: ${canonical}`)
 
-      const hash = await resolveVerdict(id, correct, proofHash)
-      resolved++
+      const hash = await proposeResolution(id, correct, proofHash, RULE_VERSION, snapshotURI)
+      proposed++
       console.log(
-        `resolved ${id.slice(0, 10)} rating ${v.rating} -> ${correct ? "CORRECT" : "WRONG"} (now ${classify(r.score)}/${r.score}) tx ${hash}`,
+        `proposed ${id.slice(0, 10)} rating ${v.rating} -> ${correct ? "CORRECT" : "WRONG"} (now ${classify(r.score)}/${r.score}) tx ${hash}`,
       )
     } catch (e) {
-      console.error(`resolve failed ${id.slice(0, 10)}:`, (e as Error).message)
+      console.error(`propose failed ${id.slice(0, 10)}:`, (e as Error).message)
     }
   }
-  return resolved
+  return { proposed, finalized }
 }
 
 async function main() {
@@ -145,13 +174,13 @@ async function main() {
   }
   const stakeUnits = usdToUnits(config.agentStakeUsd)
   console.log(
-    `stake run: contract ${config.riskStakeAddress} agent ${config.agentAddress} stake $${config.agentStakeUsd}`,
+    `stake run: contract ${config.riskStakeAddress} agent ${config.agentAddress} (id ${config.agentId}) stake $${config.agentStakeUsd}`,
   )
-  const resolved = await resolveMatured()
+  const { proposed, finalized } = await processPending()
   const committed = await commitFresh(stakeUnits)
   const s = await readAgentStats()
   console.log(
-    `done: +${committed} committed, ${resolved} resolved | on-chain: ${s.totalVerdicts} verdicts, $${s.totalStakedUsd} staked, ${s.correct}/${s.correct + s.wrong} correct, accuracy ${(s.accuracyBps / 100).toFixed(2)}%, at-risk $${s.totalAtRiskUsd}, slash-rate ${(s.slashRateBps / 100).toFixed(2)}%`,
+    `done: +${committed} committed, ${proposed} proposed, ${finalized} finalized | on-chain: ${s.totalVerdicts} verdicts, $${s.totalStakedUsd} staked, ${s.correct}/${s.correct + s.wrong} correct, accuracy ${(s.accuracyBps / 100).toFixed(2)}%, at-risk $${s.totalAtRiskUsd}, slash-rate ${(s.slashRateBps / 100).toFixed(2)}%, identity-age ${Math.floor(s.identityAgeSeconds / 86400)}d`,
   )
 }
 

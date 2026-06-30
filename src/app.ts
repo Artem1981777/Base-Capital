@@ -7,7 +7,7 @@ import { config } from "./config.js"
 import { assessToken } from "./lib/risk.js"
 import { renderLanding } from "./landing.js"
 import { verdicts, stats } from "./data/log.js"
-import { readAgentStats, hasContract } from "./lib/stake.js"
+import { readAgentStats, readAgentStatsByAddress, hasContract } from "./lib/stake.js"
 import { mountDiscovery } from "./wellknown.js"
 import { backtest } from "./data/backtest.js"
 
@@ -209,7 +209,7 @@ export function createApp() {
 			return
 		}
 		try {
-			const onchain = await readAgentStats(address)
+			const onchain = await readAgentStatsByAddress(address)
 			res.json({
 				available: true,
 				address,
