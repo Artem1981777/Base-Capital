@@ -1,0 +1,28 @@
+name: Register Agent
+on:
+  workflow_dispatch:
+    inputs:
+      address:
+        description: 'RiskStake address to register agent on'
+        required: true
+        default: ""
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Register agent 57556
+        env:
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          ADDR_INPUT: ${{ inputs.address }}
+        run: |
+          if [ -z "$DEPLOYER_PRIVATE_KEY" ]; then echo "secret not wired"; exit 1; fi
+          ADDR="$ADDR_INPUT"
+          if [ -z "$ADDR" ]; then echo "address required"; exit 1; fi
+          PK="0x$(printf '%s' "$DEPLOYER_PRIVATE_KEY" | tr -d '[:space:]' | sed 's/^0x//')"
+          cast send "$ADDR" "registerAgent(uint256,address)" 57556 0x404d641eB58352c5AA23aF6b16d08f0C979f6778 \
+            --rpc-url https://mainnet.base.org \
+            --private-key "$PK"
+          echo "registered 57556 on $ADDR"

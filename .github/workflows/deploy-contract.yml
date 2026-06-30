@@ -32,7 +32,7 @@ jobs:
             --broadcast --json \
             --constructor-args 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 0x45e029499424FCc76aFb55b3beE7D16116db0a97 0x404d641eB58352c5AA23aF6b16d08f0C979f6778 \
             | tee deploy-out.json
-          ADDR=$(grep -o '"deployedTo":"[^"]*"' deploy-out.json | head -1 | cut -d'"' -f4)
+          ADDR=$(jq -r '.deployedTo' deploy-out.json)
           if [ -z "$ADDR" ]; then echo "deploy failed: no address"; exit 1; fi
           echo "Deployed address: $ADDR"
           cast send "$ADDR" "registerAgent(uint256,address)" 57556 0x404d641eB58352c5AA23aF6b16d08f0C979f6778 \
