@@ -9,7 +9,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
       - name: setParams
         env:
-          PK: {{ secrets.DEPLOYER_PRIVATE_KEY }}
+          PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: |
           set -e
           C=0x0eC7de61eE08659743A896FeB15BfB99361f440e
