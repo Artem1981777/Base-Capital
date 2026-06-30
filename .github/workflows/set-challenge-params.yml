@@ -1,0 +1,24 @@
+name: Set Challenge Params
+on:
+  workflow_dispatch: {}
+jobs:
+  set-params:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: setChallengeParams window=1h
+        env:
+          PK: {{ secrets.DEPLOYER_PRIVATE_KEY }}
+        run: |
+          set -e
+          C=0x0eC7de61eE08659743A896FeB15BfB99361f440e
+          RPC=https://mainnet.base.org
+          echo "== before =="
+          cast call $C "challengeWindow()(uint40)" --rpc-url $RPC
+          echo "== sending setChallengeParams(3600,1000000,5000) =="
+          cast send $C "setChallengeParams(uint40,uint96,uint16)" 3600 1000000 5000 --rpc-url $RPC --private-key "$PK"
+          echo "== after =="
+          cast call $C "challengeWindow()(uint40)" --rpc-url $RPC
+          cast call $C "challengeBondAmount()(uint96)" --rpc-url $RPC
+          cast call $C "challengeRewardBps()(uint16)" --rpc-url $RPC
