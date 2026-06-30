@@ -51,6 +51,19 @@ const BLUE_CHIPS: WatchToken[] = [
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
+async function gtFetch(path: string, tries = 5): Promise<any | null> {
+  let wait = 1500
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(GT + path, { headers: { accept: "application/json" } })
+      if (res.status === 429) { await sleep(wait); wait = Math.min(wait * 2, 16000); continue }
+      if (!res.ok) return null
+      return await res.json()
+    } catch { await sleep(wait); wait = Math.min(wait * 2, 16000) }
+  }
+  return null
+}
+
 type Candidate = { symbol: string; address: string; blueChip: boolean }
 
 function dedupe(cands: Candidate[]): Candidate[] {
@@ -79,27 +92,27 @@ async function harvestRisky(): Promise<Candidate[]> {
     "new_pools?page=2",
     "new_pools?page=3",
     "new_pools?page=4",
+    "new_pools?page=5",
+    "new_pools?page=6",
+    "new_pools?page=7",
+    "new_pools?page=8",
+    "new_pools?page=9",
+    "new_pools?page=10",
     "trending_pools?page=1",
     "trending_pools?page=2",
+    "trending_pools?page=3",
   ]
   for (const f of feeds) {
     try {
-      const res = await fetch(`${GT}/networks/base/${f}`, {
-        headers: { accept: "application/json" },
-      })
-      if (!res.ok) {
-        await sleep(400)
-        continue
-      }
-      const json = (await res.json()) as {
+      const json = (await gtFetch(`/networks/base/${f}`)) as {
         data?: Array<{
           attributes?: { name?: string; reserve_in_usd?: string }
           relationships?: { base_token?: { data?: { id?: string } } }
         }>
       }
-      for (const p of json.data ?? []) {
+      for (const p of (json?.data ?? [])) {
         const liq = Number(p.attributes?.reserve_in_usd ?? 0)
-        if (liq < 500) continue
+        if (Math.abs(liq) < 120) continue
         const id = p.relationships?.base_token?.data?.id ?? ""
         const addr = (id.includes("_") ? id.slice(id.indexOf("_") + 1) : id).toLowerCase()
         if (!/^0x[a-f0-9]{40}$/.test(addr)) continue

@@ -1,32 +1,32 @@
 {
-  "generatedAt": "2026-06-30T17:01:47.434Z",
+  "generatedAt": "2026-06-30T17:36:45.791Z",
   "oracle": "consensus: honeypot.is sim + GoPlus security + post-hoc liquidity drain",
   "predictionRule": "predict UNSAFE when risk score < threshold, else SAFE",
   "threshold": 75,
   "universe": {
-    "candidates": 48,
-    "labeled": 28,
-    "bad": 2,
-    "good": 26,
-    "skippedUnknown": 20
+    "candidates": 133,
+    "labeled": 94,
+    "bad": 3,
+    "good": 91,
+    "skippedUnknown": 39
   },
   "confusion": {
-    "tp": 2,
-    "fp": 8,
-    "tn": 18,
+    "tp": 3,
+    "fp": 36,
+    "tn": 55,
     "fn": 0
   },
   "metrics": {
-    "precision": 0.2,
+    "precision": 0.077,
     "recall": 1,
-    "f1": 0.333,
-    "accuracy": 0.714
+    "f1": 0.143,
+    "accuracy": 0.617
   },
   "metricsNoSim": {
     "precision": 0,
     "recall": 0,
     "f1": 0,
-    "accuracy": 0.643
+    "accuracy": 0.585
   },
   "sweep": [
     {
@@ -38,66 +38,66 @@
     },
     {
       "threshold": 45,
-      "precision": 0.5,
+      "precision": 0.333,
       "recall": 1,
-      "f1": 0.667,
-      "accuracy": 0.929
+      "f1": 0.5,
+      "accuracy": 0.936
     },
     {
       "threshold": 50,
-      "precision": 0.5,
-      "recall": 1,
-      "f1": 0.667,
-      "accuracy": 0.929
-    },
-    {
-      "threshold": 55,
-      "precision": 0.5,
-      "recall": 1,
-      "f1": 0.667,
-      "accuracy": 0.929
-    },
-    {
-      "threshold": 60,
-      "precision": 0.5,
-      "recall": 1,
-      "f1": 0.667,
-      "accuracy": 0.929
-    },
-    {
-      "threshold": 65,
-      "precision": 0.25,
-      "recall": 1,
-      "f1": 0.4,
-      "accuracy": 0.786
-    },
-    {
-      "threshold": 70,
-      "precision": 0.222,
-      "recall": 1,
-      "f1": 0.364,
-      "accuracy": 0.75
-    },
-    {
-      "threshold": 75,
       "precision": 0.2,
       "recall": 1,
       "f1": 0.333,
-      "accuracy": 0.714
+      "accuracy": 0.872
+    },
+    {
+      "threshold": 55,
+      "precision": 0.2,
+      "recall": 1,
+      "f1": 0.333,
+      "accuracy": 0.872
+    },
+    {
+      "threshold": 60,
+      "precision": 0.176,
+      "recall": 1,
+      "f1": 0.3,
+      "accuracy": 0.851
+    },
+    {
+      "threshold": 65,
+      "precision": 0.094,
+      "recall": 1,
+      "f1": 0.171,
+      "accuracy": 0.691
+    },
+    {
+      "threshold": 70,
+      "precision": 0.091,
+      "recall": 1,
+      "f1": 0.167,
+      "accuracy": 0.681
+    },
+    {
+      "threshold": 75,
+      "precision": 0.077,
+      "recall": 1,
+      "f1": 0.143,
+      "accuracy": 0.617
     },
     {
       "threshold": 80,
-      "precision": 0.182,
+      "precision": 0.056,
       "recall": 1,
-      "f1": 0.308,
-      "accuracy": 0.679
+      "f1": 0.105,
+      "accuracy": 0.457
     },
     {
       "threshold": 85,
-      "precision": 0.143,
+      "precision": 0.048,
       "recall": 1,
-      "f1": 0.25,
-      "accuracy": 0.571
+      "f1": 0.092,
+      "accuracy": 0.372
     }
   ],
   "rows": [
@@ -244,8 +244,8 @@
     {
       "symbol": "NOCK",
       "token": "0x9b5e262cf9bb04869ab40b19af91d2dc85761722",
-      "score": 26,
-      "scoreNoSim": 96,
+      "score": 30,
+      "scoreNoSim": 100,
       "predicted": "unsafe",
       "truth": "bad",
       "correct": true,
@@ -257,31 +257,161 @@
     {
       "symbol": "LBM",
       "token": "0x15b15fa54b629c634958e8bd639b2fc8af654974",
-      "score": 66,
-      "scoreNoSim": 66,
-      "predicted": "unsafe",
+      "score": 96,
+      "scoreNoSim": 96,
+      "predicted": "safe",
       "truth": "good",
-      "correct": false,
+      "correct": true,
       "oracleReason": "sellable"
     },
     {
-      "symbol": "NOAH",
-      "token": "0xb1aa1adb4ea2b2ceb8b9d2b4c8a5cd7703257cdb",
-      "score": 71,
-      "scoreNoSim": 71,
-      "predicted": "unsafe",
-      "truth": "good",
-      "correct": false,
-      "oracleReason": "sellable"
-    },
-    {
-      "symbol": "AI",
-      "token": "0xef3c2c93199d44ce9d07874d2a7d65fc2e1074b7",
+      "symbol": "ISRAEL",
+      "token": "0x33d8aca867737361553226e233bbbd91601117ed",
       "score": 60,
       "scoreNoSim": 60,
       "predicted": "unsafe",
       "truth": "good",
       "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "BBD",
+      "token": "0xfcca857035d74ca23b9dbbb5455aebd6e91b52b9",
+      "score": 60,
+      "scoreNoSim": 60,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "BASE",
+      "token": "0x17b075d2c45cf1d6449d73a324531fc26f59cc65",
+      "score": 60,
+      "scoreNoSim": 60,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "1",
+      "token": "0x3690e72a0a9c58be66bf45a7a80df67b6f93a9cb",
+      "score": 60,
+      "scoreNoSim": 60,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "HOLD",
+      "token": "0x202b7bda2f256ab17185a00a1fa3153140718d95",
+      "score": 60,
+      "scoreNoSim": 60,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "MARIO",
+      "token": "0x268b3105e5284fbc1e270735baed99ddc62a3b07",
+      "score": 71,
+      "scoreNoSim": 71,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "GEM",
+      "token": "0x2f79690a2babf0fb70258658bebc7e53774b6037",
+      "score": 60,
+      "scoreNoSim": 60,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "ZAYED",
+      "token": "0x5e4139e37f049c195fa850c73665b15846ceeb07",
+      "score": 71,
+      "scoreNoSim": 71,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "GRIBBIT",
+      "token": "0x7cfc7fe9ca598dfafd84f299a2c8ff82c318b2a4",
+      "score": 43,
+      "scoreNoSim": 43,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "CANCAT",
+      "token": "0x953a1bc05a99d1c54cb838fab4b823204cd31065",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "AWG",
+      "token": "0x6c16d7dd8228fea58f8abdd8b68912b1c5302ba3",
+      "score": 85,
+      "scoreNoSim": 85,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "ZAYED",
+      "token": "0xda6217987063c9f3106869be2233ecdf473b2a1f",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "Claud",
+      "token": "0xe6bf58f378a8cf6b171986d7df11cae96f216b07",
+      "score": 63,
+      "scoreNoSim": 63,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "DBA",
+      "token": "0x1160d2ff86ea509d4d18527a91458777c5f36b07",
+      "score": 81,
+      "scoreNoSim": 81,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "NOAH",
+      "token": "0xb1aa1adb4ea2b2ceb8b9d2b4c8a5cd7703257cdb",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
       "oracleReason": "sellable"
     },
     {
@@ -295,23 +425,489 @@
       "oracleReason": "sellable"
     },
     {
-      "symbol": "FWC",
-      "token": "0xb4dd7923bd14c366157dd95efb31eb09fb943458",
+      "symbol": "TIME",
+      "token": "0x4ac72a258afbc72d37a9edac26859adc1ce8546f",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "America250",
+      "token": "0xfa97a7aa3b0254eaac7de98505b405db163fb6ad",
       "score": 60,
       "scoreNoSim": 60,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "KODY",
+      "token": "0x6f5997b63090bb8287b916c6148e50fceda58408",
+      "score": 85,
+      "scoreNoSim": 85,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "HOAY",
+      "token": "0xf018bf2cf6f04938d54d664eae4f4f6ecabf8ba3",
+      "score": 71,
+      "scoreNoSim": 71,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "B20",
+      "token": "0x2063f5476f9705b89a0a258a61a55c8ba11c7f1f",
+      "score": 48,
+      "scoreNoSim": 48,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "B20PUNK",
+      "token": "0xc5a5c1fb88d4ef9d0628673fb8e94719538543a3",
+      "score": 44,
+      "scoreNoSim": 44,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "RIBIX",
+      "token": "0x49d6245ce9da1a8946c615e16c2474447ba12b07",
+      "score": 56,
+      "scoreNoSim": 56,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "KODY",
+      "token": "0x341f265a8f4bc289a46f8f6eeb3b40197fc292f1",
+      "score": 71,
+      "scoreNoSim": 71,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "BLUEBULL",
+      "token": "0xac3436227f3ce291ebd5d0ee9d6dc3d8e2522ba3",
+      "score": 85,
+      "scoreNoSim": 85,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "ALPHAT",
+      "token": "0x460a2d740229a5e4f16e396688983dacf3379b07",
+      "score": 71,
+      "scoreNoSim": 71,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "B20PUNK",
+      "token": "0x21d9571c46e80b0859fe1a9ee6c140221f95fad8",
+      "score": 44,
+      "scoreNoSim": 44,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "KILLER",
+      "token": "0x6bfb102fde899c350b48b29d6def100624007028",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "RAX",
+      "token": "0x3a1b476f2173e4ebc938d96a3ccec4dbc770d8a1",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "VELO",
+      "token": "0x59c1caae9e7bc52fae98c65d5601e14f89a00a2c",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "MANDO",
+      "token": "0x6a4174c1cd2d773f8dea139328f7d6ccfc16316b",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "ZERC",
+      "token": "0xe1fa362827c81b836c0626c7531b8b4b60555ddc",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "B20PUNK",
+      "token": "0xb3b76915238906b81970f7af2e304bd983ebf98d",
+      "score": 48,
+      "scoreNoSim": 48,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "KODY",
+      "token": "0x10eba758774d6b6e0dc616055112ab1b35166ba3",
+      "score": 59,
+      "scoreNoSim": 59,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "ashcrow32",
+      "token": "0x10da39ab49d203454948f246f797454bdd0cf3a9",
+      "score": 48,
+      "scoreNoSim": 48,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "aj_3068",
+      "token": "0x6226e5a03d7cd851ec256605e084cb7d7c09db5a",
+      "score": 60,
+      "scoreNoSim": 60,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "TGC",
+      "token": "0xb830cf6b557f1dff3cf9964e4e307b4d9f1dc54d",
+      "score": 73,
+      "scoreNoSim": 73,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "B20",
+      "token": "0x6810e2b08d2382790b6ec9f26f994004338294cf",
+      "score": 48,
+      "scoreNoSim": 48,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "WKBT",
+      "token": "0x3843f00fc391e75c1f1a98ff40d945ff185ea64b",
+      "score": 63,
+      "scoreNoSim": 63,
       "predicted": "unsafe",
       "truth": "good",
       "correct": false,
       "oracleReason": "sellable"
     },
     {
-      "symbol": "ANTHROPIC",
-      "token": "0x323382695b59a9899783b8ed15745eb3e62778a1",
-      "score": 60,
-      "scoreNoSim": 60,
+      "symbol": "B20PUNK",
+      "token": "0x19637102fab74f1d146fc60101cee0eb6714a962",
+      "score": 48,
+      "scoreNoSim": 48,
       "predicted": "unsafe",
       "truth": "good",
       "correct": false,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "NIBZ",
+      "token": "0x316a6392dc9cee56e2d90673eb510c5d78edaf88",
+      "score": 63,
+      "scoreNoSim": 63,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "SORT",
+      "token": "0x5d8195823cb0950f62c515bdcb092f6cfdfa2407",
+      "score": 63,
+      "scoreNoSim": 63,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "PAINSTR",
+      "token": "0x7cb5edec82efbc82561438411aea4596778412a6",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "XIO",
+      "token": "0x6a6650a461093397defb2dd85b165f7c621b972c",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "XL1",
+      "token": "0x900018e1459601d59cfad4f22a6e5cae2860a33e",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "SOWAKA",
+      "token": "0xeb0f3036b7ab361b29d756b1fae76281740c0779",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "PAST",
+      "token": "0xec07304a7df6256502c5e18bbd92ef7decd137f4",
+      "score": 75,
+      "scoreNoSim": 75,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "copper",
+      "token": "0x363e179272ad3d242ec3f9c0bf263814ce193168",
+      "score": 48,
+      "scoreNoSim": 48,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "BLKH",
+      "token": "0xd63f21e7f4205d59c5b486273c42e261d5cd4d1d",
+      "score": 88,
+      "scoreNoSim": 88,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "GITLAWB",
+      "token": "0x5f980dcfc4c0fa3911554cf5ab288ed0eb13dba3",
+      "score": 96,
+      "scoreNoSim": 96,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "ROOTAI",
+      "token": "0xe96301023608c61e0191cd4ced0a5cd767ed4da8",
+      "score": 66,
+      "scoreNoSim": 66,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "VVV",
+      "token": "0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf",
+      "score": 84,
+      "scoreNoSim": 84,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "KTA",
+      "token": "0xc0634090f2fe6c6d75e61be2b949464abb498973",
+      "score": 92,
+      "scoreNoSim": 92,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "BASEMATE",
+      "token": "0x07e61d8a4e197dfc269e90d7ece1df0d26702ba3",
+      "score": 92,
+      "scoreNoSim": 92,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "http_404"
+    },
+    {
+      "symbol": "LFI",
+      "token": "0x3722264ab15a1dfce5a5af89e6547f7949a8aba3",
+      "score": 92,
+      "scoreNoSim": 92,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "SOL",
+      "token": "0x311935cd80b76769bf2ecc9d8ab7635b2139cf82",
+      "score": 84,
+      "scoreNoSim": 84,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "Surplus",
+      "token": "0xc52aedec3374422d7510e294cfaa90799595cba3",
+      "score": 26,
+      "scoreNoSim": 96,
+      "predicted": "unsafe",
+      "truth": "bad",
+      "correct": true,
+      "oracleReason": "honeypot.is",
+      "sources": [
+        "honeypot.is"
+      ]
+    },
+    {
+      "symbol": "TIBBIR",
+      "token": "0xa4a2e2ca3fbfe21aed83471d28b6f65a233c6e00",
+      "score": 100,
+      "scoreNoSim": 100,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "EDEL",
+      "token": "0xfb31f85a8367210b2e4ed2360d2da9dc2d2ccc95",
+      "score": 100,
+      "scoreNoSim": 100,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "PROS",
+      "token": "0x8b7dde054be9d180c1be7fae0874697374a49832",
+      "score": 30,
+      "scoreNoSim": 100,
+      "predicted": "unsafe",
+      "truth": "bad",
+      "correct": true,
+      "oracleReason": "honeypot.is",
+      "sources": [
+        "honeypot.is"
+      ]
+    },
+    {
+      "symbol": "BNKR",
+      "token": "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b",
+      "score": 100,
+      "scoreNoSim": 100,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "TSG",
+      "token": "0x4c433f4ef87fe506a7eed2fd1d822cbed411eba3",
+      "score": 100,
+      "scoreNoSim": 100,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "DRB",
+      "token": "0x3ec2156d4c0a9cbdab4a016633b7bcf6a8d68ea2",
+      "score": 100,
+      "scoreNoSim": 100,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "PRXVT",
+      "token": "0x4b5d32a07b8d3ec5d6928caa30196f8dd6a7c5a9",
+      "score": 100,
+      "scoreNoSim": 100,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
       "oracleReason": "sellable"
     },
     {
@@ -325,8 +921,18 @@
       "oracleReason": "sellable"
     },
     {
-      "symbol": "RAVE",
-      "token": "0x1aa8fd5bcce2231c6100d55bf8b377cff33acfc3",
+      "symbol": "ZRO",
+      "token": "0x6985884c4392d348587b19cb9eaaf157f13271cd",
+      "score": 88,
+      "scoreNoSim": 88,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "SHIB",
+      "token": "0xfca95aeb5bf44ae355806a5ad14659c940dc6bf7",
       "score": 100,
       "scoreNoSim": 100,
       "predicted": "safe",
@@ -335,31 +941,88 @@
       "oracleReason": "sellable"
     },
     {
-      "symbol": "Surplus",
-      "token": "0xc52aedec3374422d7510e294cfaa90799595cba3",
-      "score": 30,
-      "scoreNoSim": 100,
-      "predicted": "unsafe",
-      "truth": "bad",
-      "correct": true,
-      "oracleReason": "honeypot.is",
-      "sources": [
-        "honeypot.is"
-      ]
-    },
-    {
-      "symbol": "KTA",
-      "token": "0xc0634090f2fe6c6d75e61be2b949464abb498973",
-      "score": 100,
-      "scoreNoSim": 100,
+      "symbol": "hTEA",
+      "token": "0xa1a0b2e02b0e6830ad5a4a7211691200945d8919",
+      "score": 88,
+      "scoreNoSim": 88,
       "predicted": "safe",
       "truth": "good",
       "correct": true,
+      "oracleReason": "inconclusive"
+    },
+    {
+      "symbol": "JitoSOL",
+      "token": "0x97be14dd8f994a5364573bc035d85309e7cb34de",
+      "score": 84,
+      "scoreNoSim": 84,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "OVPP",
+      "token": "0x8c0d3adcf8ce094e1ae437557ec90a6374dc9bdd",
+      "score": 96,
+      "scoreNoSim": 96,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "inconclusive"
+    },
+    {
+      "symbol": "USDT",
+      "token": "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2",
+      "score": 62,
+      "scoreNoSim": 62,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "OMI",
+      "token": "0x3792dbdd07e87413247df995e692806aa13d3299",
+      "score": 62,
+      "scoreNoSim": 62,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "HYDX",
+      "token": "0x00000e7efa313f4e11bfff432471ed9423ac6b30",
+      "score": 84,
+      "scoreNoSim": 84,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "deSPXA",
+      "token": "0x9c5c365e764829876243d0b289733b9d2b729685",
+      "score": 40,
+      "scoreNoSim": 21,
+      "predicted": "unsafe",
+      "truth": "good",
+      "correct": false,
       "oracleReason": "sellable"
     },
     {
       "symbol": "VU",
       "token": "0x511ef9ad5e645e533d15df605b4628e3d0d0ff53",
+      "score": 92,
+      "scoreNoSim": 92,
+      "predicted": "safe",
+      "truth": "good",
+      "correct": true,
+      "oracleReason": "sellable"
+    },
+    {
+      "symbol": "RAVE",
+      "token": "0x1aa8fd5bcce2231c6100d55bf8b377cff33acfc3",
       "score": 100,
       "scoreNoSim": 100,
       "predicted": "safe",
@@ -388,26 +1051,26 @@
       "oracleReason": "sellable"
     }
   ],
-  "positives": 2,
+  "positives": 3,
   "ci": {
     "method": "wilson-95",
     "precision": {
-      "lo": 0.057,
-      "hi": 0.51,
-      "n": 10
+      "lo": 0.027,
+      "hi": 0.203,
+      "n": 39
     },
     "recall": {
-      "lo": 0.342,
+      "lo": 0.438,
       "hi": 1,
-      "n": 2
+      "n": 3
     }
   },
   "agreement": {
     "raters": "honeypot.is vs GoPlus",
-    "n": 14,
-    "agree": 13,
-    "observed": 0.929,
-    "expected": 0.929,
+    "n": 32,
+    "agree": 31,
+    "observed": 0.969,
+    "expected": 0.969,
     "kappa": 0
   },
   "groundTruthSources": [
@@ -416,10 +1079,10 @@
     "post-hoc on-chain liquidity drain vs logged liquidity"
   ],
   "methodology": [
-    "Positive (bad) class size n=2. Read precision/recall together with their Wilson 95% intervals; a metric over a tiny n is not evidence.",
+    "Positive (bad) class size n=3. Read precision/recall together with their Wilson 95% intervals; a metric over a tiny n is not evidence.",
     "A token is labelled BAD if ANY independent hard source confirms a rug (honeypot, cannot-sell, >=90% tax, or a drained pool), GOOD if the live oracles agree it is sellable and it has not drained, otherwise skipped as unknown rather than guessed.",
     "Liquidity-drain is a retrospective T+N rug confirmation against the liquidity recorded when the token was first logged - the closest honest approximation to walk-forward without an archival point-in-time feed.",
-    "Inter-oracle agreement (honeypot.is vs GoPlus) Cohen kappa = 0 over n=14.",
+    "Inter-oracle agreement (honeypot.is vs GoPlus) Cohen kappa = 0 over n=32.",
     "No hardcoded rug list: every address is harvested live from GeckoTerminal pools, discovery, watchlist and the published verdict log."
   ],
   "notes": [
