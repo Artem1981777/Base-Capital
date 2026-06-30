@@ -17,14 +17,36 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
       - name: Write foundry.toml
-        run: printf '[profile.default]\nsrc = "contracts"\nout = "out"\nsolc = "0.8.24"\noptimizer = true\noptimizer_runs = 200\n' > foundry.toml
+        run: printf '[profile.default]\nsrc = "contracts"\nout = "out"\nsolc = "0.8.24"\noptimizer = true\noptimizer_runs = 200\nvia_ir = true\n' > foundry.toml
       - name: Build
         run: forge build
       - name: Deploy to Base mainnet
+        id: deploy
         env:
-          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          DEPLOYER_PRIVATE_KEY: $ secrets.DEPLOYER_PRIVATE_KEY 
         run: |
           if [ -z "$DEPLOYER_PRIVATE_KEY" ]; then echo "secret DEPLOYER_PRIVATE_KEY not set"; exit 1; fi
-          forge create contracts/RiskStake.sol:RiskStake --rpc-url https://mainnet.base.org --private-key "$DEPLOYER_PRIVATE_KEY" --broadcast --json --constructor-args 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 0x45e029499424FCc76aFb55b3beE7D16116db0a97 0x404d641eB58352c5AA23aF6b16d08f0C979f6778 | tee deploy-out.json
-          echo "=== Deployed address ==="
-          grep -o '"deployedTo":"[^"]*"' deploy-out.json || true
+          forge create contracts/RiskStake.sol:RiskStake \
+            --rpc-url https://mainnet.base.org \
+            --private-key "$DEPLOYER_PRIVATE_KEY" \
+            --broadcast --json \
+            --constructor-args 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 0x45e029499424FCc76aFb55b3beE7D16116db0a97 0x404d641eB58352c5AA23aF6b16d08f0C979f6778 \
+            | tee deploy-out.json
+          ADDR=$(grep -o '"deployedTo":"[^"]*"' deploy-out.json | head -1 | cut -d'"' -f4)
+          echo "Deployed address: $ADDR"
+          echo "address=$ADDR" >> "$GITHUB_OUTPUT"
+      - name: Register agent (ERC-8004 #57556)
+        env:
+          DEPLOYER_PRIVATE_KEY: $ secrets.DEPLOYER_PRIVATE_KEY 
+        run: |
+          ADDR="$ steps.deploy.outputs.address "
+          if [ -z "$ADDR" ]; then echo "no deployed address"; exit 1; fi
+          cast send "$ADDR" "registerAgent(uint256,address)" 57556 0x404d641eB58352c5AA23aF6b16d08f0C979f6778 \
+            --rpc-url https://mainnet.base.org \
+            --private-key "$DEPLOYER_PRIVATE_KEY"
+          echo "registered agent 57556 -> signer 0x404d...6778 on $ADDR"
+      - name: Summary
+        run: |
+          echo "## RiskStake v3 deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Address: $ steps.deploy.outputs.address " >> "$GITHUB_STEP_SUMMARY"
+          echo "Next: verify (workflow_dispatch address=ADDR), migrate TS layer, then set RISKSTAKE_ADDRESS." >> "$GITHUB_STEP_SUMMARY"

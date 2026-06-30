@@ -1,6 +1,13 @@
 name: Verify RiskStake
+
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      address:
+        description: 'Deployed RiskStake address to verify on Sourcify'
+        required: true
+        default: ""
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -9,13 +16,15 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
       - name: Write foundry.toml
-        run: printf '[profile.default]\nsrc="contracts"\nout="out"\nsolc="0.8.24"\noptimizer=true\noptimizer_runs=200\n' > foundry.toml
+        run: printf '[profile.default]\nsrc = "contracts"\nout = "out"\nsolc = "0.8.24"\noptimizer = true\noptimizer_runs = 200\nvia_ir = true\n' > foundry.toml
       - name: Build
         run: forge build --skip test
       - name: Verify on Sourcify
         run: |
+          ADDR="$ github.event.inputs.address "
+          if [ -z "$ADDR" ]; then echo "address input required"; exit 1; fi
           forge verify-contract \
-            0x21d49dE1f154FF49608acbc750926e6d7Db22cCB \
+            "$ADDR" \
             contracts/RiskStake.sol:RiskStake \
             --chain 8453 \
             --verifier sourcify \
