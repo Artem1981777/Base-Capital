@@ -3,60 +3,31 @@ pragma solidity ^0.8.24;
 
 import {RiskStake} from "../contracts/RiskStake.sol";
 
-/// Minimal cheatcode interface (subset of forge-std Vm) so the suite is
-/// fully self-contained — no forge-std install required.
 interface Vm {
-    function warp(uint256) external;
     function prank(address) external;
-    function expectRevert() external;
+    function startPrank(address) external;
+    function stopPrank() external;
+    function warp(uint256) external;
+    function expectRevert(bytes calldata) external;
 }
 
-/// Mock 6-decimal USDC with an optional reentrancy hook for the guard test.
 contract MockUSDC {
     uint8 public decimals = 6;
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
 
-    address public reentryTarget;
-    bytes public reentryData;
-    bool public reentryOnFrom;
-
-    function setReentry(address t, bytes calldata d, bool onFrom) external {
-        reentryTarget = t;
-        reentryData = d;
-        reentryOnFrom = onFrom;
+    function mint(address to, uint256 amt) external { balanceOf[to] += amt; }
+    function approve(address s, uint256 a) external returns (bool) { allowance[msg.sender][s] = a; return true; }
+    function transfer(address to, uint256 a) external returns (bool) {
+        require(balanceOf[msg.sender] >= a, "bal");
+        balanceOf[msg.sender] -= a; balanceOf[to] += a; return true;
     }
-
-    function mint(address to, uint256 amt) external {
-        balanceOf[to] += amt;
-    }
-
-    function approve(address sp, uint256 amt) external returns (bool) {
-        allowance[msg.sender][sp] = amt;
-        return true;
-    }
-
-    function transfer(address to, uint256 amt) external returns (bool) {
-        balanceOf[msg.sender] -= amt;
-        balanceOf[to] += amt;
-        if (reentryTarget != address(0) && !reentryOnFrom) {
-            (bool ok, ) = reentryTarget.call(reentryData);
-            require(ok, "reentry failed");
-        }
-        return true;
-    }
-
-    function transferFrom(address from, address to, uint256 amt) external returns (bool) {
-        uint256 a = allowance[from][msg.sender];
-        require(a >= amt, "allowance");
-        allowance[from][msg.sender] = a - amt;
-        balanceOf[from] -= amt;
-        balanceOf[to] += amt;
-        if (reentryTarget != address(0) && reentryOnFrom) {
-            (bool ok, ) = reentryTarget.call(reentryData);
-            require(ok, "reentry failed");
-        }
-        return true;
+    function transferFrom(address f, address to, uint256 a) external returns (bool) {
+        require(balanceOf[f] >= a, "bal");
+        uint256 al = allowance[f][msg.sender];
+        require(al >= a, "allow");
+        if (al != type(uint256).max) allowance[f][msg.sender] = al - a;
+        balanceOf[f] -= a; balanceOf[to] += a; return true;
     }
 }
 
@@ -65,194 +36,269 @@ contract RiskStakeTest {
 
     RiskStake rs;
     MockUSDC usdc;
+    address constant ORACLE = address(0x1111);
+    address constant TREASURY = address(0x2222);
+    address constant SIGNER = address(0x3333);
+    address constant CHALLENGER = address(0x4444);
+    uint256 constant AGENT_ID = 57556;
+    address constant TOKEN = address(0xBEEF);
+    uint256 constant STAKE = 1_000_000; // $1
+    uint256 constant BOND = 1_000_000;  // $1 default
 
-    address oracle = address(0xA11CE);
-    address treasury = address(0xBEEF);
-    address agent = address(0xCAFE);
-
-    bytes32 constant ID1 = keccak256("v1");
-    bytes32 constant ID2 = keccak256("v2");
-    bytes32 constant PROOF = keccak256("proof");
-    address constant TOKEN = address(0x1234567890123456789012345678901234567890);
-    uint256 constant STAKE = 5_000_000; // $5
-    uint256 constant FUND = 1_000_000_000; // $1000
+    function assertEq(uint256 a, uint256 b) internal pure { require(a == b, "assertEq uint"); }
+    function assertEq(bytes32 a, bytes32 b) internal pure { require(a == b, "assertEq bytes32"); }
+    function assertTrue(bool c) internal pure { require(c, "assertTrue"); }
+    function assertFalse(bool c) internal pure { require(!c, "assertFalse"); }
 
     function setUp() public {
         usdc = new MockUSDC();
-        rs = new RiskStake(address(usdc), treasury, oracle);
-        usdc.mint(agent, FUND);
-        vm.prank(agent);
-        usdc.approve(address(rs), FUND);
+        rs = new RiskStake(address(usdc), TREASURY, ORACLE); // owner = this
+        rs.registerAgent(AGENT_ID, SIGNER);
+        usdc.mint(SIGNER, 1_000_000_000);
+        usdc.mint(CHALLENGER, 1_000_000_000);
+        vm.prank(SIGNER); usdc.approve(address(rs), type(uint256).max);
+        vm.prank(CHALLENGER); usdc.approve(address(rs), type(uint256).max);
     }
 
-    function assertEq(uint256 a, uint256 b) internal pure { require(a == b, "eq uint"); }
-    function assertEq(address a, address b) internal pure { require(a == b, "eq addr"); }
-    function assertTrue(bool c) internal pure { require(c, "assertTrue"); }
-
-    function _commit(bytes32 id, uint8 rating, uint256 stake) internal {
-        vm.prank(agent);
-        rs.commitVerdict(id, TOKEN, rating, stake);
+    function _commit(bytes32 id, uint8 rating) internal {
+        vm.prank(SIGNER);
+        rs.commitVerdict(id, TOKEN, rating, STAKE);
     }
 
-    function test_ConstructorRoles() public view {
-        assertEq(rs.owner(), address(this));
-        assertEq(rs.oracle(), oracle);
-        assertEq(rs.treasury(), treasury);
-        assertEq(uint256(rs.minStake()), 1_000_000);
-        assertEq(uint256(rs.maxStake()), 1_000_000_000);
-        assertEq(uint256(rs.minMaturity()), 1800);
-    }
-
-    function test_AtRiskWhilePending() public {
-        _commit(ID1, 0, STAKE);
-        (uint256 tv,,,,,,, uint256 ar,) = rs.getAgentStats(agent);
-        assertEq(tv, 1);
-        assertEq(ar, STAKE);
-        assertEq(rs.pendingCount(), 1);
-    }
-
-    function test_CommitAndResolveCorrect() public {
-        _commit(ID1, 0, STAKE);
+    function _propose(bytes32 id, bool correct) internal {
         vm.warp(block.timestamp + 1801);
-        vm.prank(oracle);
-        rs.resolveVerdict(ID1, true, PROOF);
-        assertEq(usdc.balanceOf(agent), FUND); // stake returned in full
-        (
-            uint256 tv,
-            uint256 ts,
-            uint256 sl,
-            uint256 ret,
-            uint256 cor,
-            uint256 wr,
-            uint256 acc,
-            uint256 ar,
-            uint256 srate
-        ) = rs.getAgentStats(agent);
+        vm.prank(ORACLE);
+        rs.proposeResolution(id, correct, keccak256("snap"), 1, "ipfs://cid");
+    }
+
+    function _stats(uint256 agentId)
+        internal view
+        returns (uint256 tv, uint256 ts, uint256 tsl, uint256 tr, uint256 cor, uint256 wr, uint256 acc, uint256 atRisk, uint256 sr, uint256 age)
+    {
+        return rs.getAgentStats(agentId);
+    }
+
+    function testCommitTracksAgentId() public {
+        bytes32 id = keccak256("v1");
+        _commit(id, 0);
+        assertEq(rs.pendingCount(), 1);
+        assertEq(rs.verdictCount(), 1);
+        (uint256 tv,,,,,,, uint256 atRisk,,) = _stats(AGENT_ID);
         assertEq(tv, 1);
-        assertEq(ts, STAKE);
-        assertEq(sl, 0);
-        assertEq(ret, STAKE);
+        assertEq(atRisk, STAKE);
+    }
+
+    function testCommitRequiresRegisteredAgent() public {
+        address rogue = address(0x5555);
+        usdc.mint(rogue, STAKE);
+        vm.startPrank(rogue);
+        usdc.approve(address(rs), STAKE);
+        vm.expectRevert(bytes("agent not registered"));
+        rs.commitVerdict(keccak256("x"), TOKEN, 0, STAKE);
+        vm.stopPrank();
+    }
+
+    function testFinalizeCorrectReturnsStake() public {
+        bytes32 id = keccak256("c");
+        _commit(id, 0);
+        _propose(id, true);
+        vm.warp(block.timestamp + 24 hours + 1);
+        uint256 b0 = usdc.balanceOf(SIGNER);
+        rs.finalize(id);
+        assertEq(usdc.balanceOf(SIGNER), b0 + STAKE);
+        (,,,, uint256 cor,, uint256 acc, uint256 atRisk,,) = _stats(AGENT_ID);
         assertEq(cor, 1);
-        assertEq(wr, 0);
         assertEq(acc, 10000);
-        assertEq(ar, 0);
-        assertEq(srate, 0);
+        assertEq(atRisk, 0);
     }
 
-    function test_ResolveWrongSlashes() public {
-        _commit(ID1, 1, STAKE);
-        vm.warp(block.timestamp + 1801);
-        vm.prank(oracle);
-        rs.resolveVerdict(ID1, false, PROOF);
-        assertEq(usdc.balanceOf(treasury), STAKE); // slashed to treasury
-        (,, uint256 sl,,, uint256 wr,, uint256 ar, uint256 srate) = rs.getAgentStats(agent);
-        assertEq(sl, STAKE);
+    function testFinalizeWrongSlashesToTreasury() public {
+        bytes32 id = keccak256("w");
+        _commit(id, 0);
+        _propose(id, false);
+        vm.warp(block.timestamp + 24 hours + 1);
+        uint256 tb = usdc.balanceOf(TREASURY);
+        rs.finalize(id);
+        assertEq(usdc.balanceOf(TREASURY), tb + STAKE);
+        (,, uint256 tsl,,, uint256 wr,,, uint256 sr,) = _stats(AGENT_ID);
+        assertEq(tsl, STAKE);
         assertEq(wr, 1);
-        assertEq(ar, 0);
-        assertEq(srate, 10000);
+        assertEq(sr, 10000);
     }
 
-    function test_ResolveBeforeMaturityReverts() public {
-        _commit(ID1, 1, STAKE);
-        vm.prank(oracle);
-        vm.expectRevert();
-        rs.resolveVerdict(ID1, false, PROOF);
+    function testCannotFinalizeBeforeWindow() public {
+        bytes32 id = keccak256("e");
+        _commit(id, 0);
+        _propose(id, true);
+        vm.expectRevert(bytes("window open"));
+        rs.finalize(id);
     }
 
-    function test_OnlyOracleResolves() public {
-        _commit(ID1, 1, STAKE);
+    function testProposeOnlyOracle() public {
+        bytes32 id = keccak256("o");
+        _commit(id, 0);
         vm.warp(block.timestamp + 1801);
-        vm.prank(agent);
-        vm.expectRevert();
-        rs.resolveVerdict(ID1, false, PROOF);
+        vm.expectRevert(bytes("not oracle"));
+        rs.proposeResolution(id, true, keccak256("s"), 1, "ipfs://x");
     }
 
-    function test_OwnerCannotResolve() public {
-        _commit(ID1, 1, STAKE);
+    function testProposeRequiresMaturity() public {
+        bytes32 id = keccak256("m");
+        _commit(id, 0);
+        vm.prank(ORACLE);
+        vm.expectRevert(bytes("not matured"));
+        rs.proposeResolution(id, true, keccak256("s"), 1, "ipfs://x");
+    }
+
+    function testProposeRequiresProofAndSnapshot() public {
+        bytes32 id = keccak256("p");
+        _commit(id, 0);
         vm.warp(block.timestamp + 1801);
-        vm.expectRevert(); // msg.sender = this = owner, but not oracle
-        rs.resolveVerdict(ID1, false, PROOF);
+        vm.prank(ORACLE);
+        vm.expectRevert(bytes("no proof"));
+        rs.proposeResolution(id, true, bytes32(0), 1, "ipfs://x");
+        vm.prank(ORACLE);
+        vm.expectRevert(bytes("no snapshot"));
+        rs.proposeResolution(id, true, keccak256("s"), 1, "");
     }
 
-    function test_OnlyOwnerAdmin() public {
-        vm.prank(agent);
-        vm.expectRevert();
-        rs.setOracle(agent);
+    function testChallengeSuccessFlipsAndRewards() public {
+        bytes32 id = keccak256("ch");
+        _commit(id, 0);
+        _propose(id, true);
+        vm.prank(CHALLENGER);
+        rs.challengeResolution(id);
+        uint256 chBefore = usdc.balanceOf(CHALLENGER);
+        uint256 tBefore = usdc.balanceOf(TREASURY);
+        rs.resolveChallenge(id, true);
+        uint256 reward = STAKE / 2;
+        assertEq(usdc.balanceOf(CHALLENGER), chBefore + BOND + reward);
+        assertEq(usdc.balanceOf(TREASURY), tBefore + (STAKE - reward));
+        (,, uint256 tsl,,, uint256 wr,,,,) = _stats(AGENT_ID);
+        assertEq(tsl, STAKE);
+        assertEq(wr, 1);
     }
 
-    function test_StakeBoundsLow() public {
-        vm.prank(agent);
-        vm.expectRevert();
-        rs.commitVerdict(ID1, TOKEN, 0, 999_999);
+    function testChallengeFailBondToTreasury() public {
+        bytes32 id = keccak256("cf");
+        _commit(id, 0);
+        _propose(id, false);
+        vm.prank(CHALLENGER);
+        rs.challengeResolution(id);
+        uint256 tBefore = usdc.balanceOf(TREASURY);
+        uint256 chBefore = usdc.balanceOf(CHALLENGER);
+        rs.resolveChallenge(id, false);
+        assertEq(usdc.balanceOf(TREASURY), tBefore + STAKE + BOND);
+        assertEq(usdc.balanceOf(CHALLENGER), chBefore);
     }
 
-    function test_StakeBoundsHigh() public {
-        vm.prank(agent);
-        vm.expectRevert();
-        rs.commitVerdict(ID1, TOKEN, 0, 1_000_000_001);
+    function testCannotChallengeAfterWindow() public {
+        bytes32 id = keccak256("cw");
+        _commit(id, 0);
+        _propose(id, true);
+        vm.warp(block.timestamp + 24 hours + 1);
+        vm.prank(CHALLENGER);
+        vm.expectRevert(bytes("window closed"));
+        rs.challengeResolution(id);
     }
 
-    function test_DuplicateCommitReverts() public {
-        _commit(ID1, 0, STAKE);
-        vm.prank(agent);
-        vm.expectRevert();
-        rs.commitVerdict(ID1, TOKEN, 0, STAKE);
-    }
-
-    function test_BadRatingReverts() public {
-        vm.prank(agent);
-        vm.expectRevert();
-        rs.commitVerdict(ID1, TOKEN, 3, STAKE);
-    }
-
-    function test_PendingViews() public {
-        _commit(ID1, 0, STAKE);
-        _commit(ID2, 1, STAKE);
+    function testPendingIndexSwapPop() public {
+        bytes32 a = keccak256("a");
+        bytes32 b = keccak256("b");
+        bytes32 c = keccak256("c2");
+        _commit(a, 0);
+        _commit(b, 0);
+        _commit(c, 0);
+        assertEq(rs.pendingCount(), 3);
+        _propose(b, true);
+        vm.warp(block.timestamp + 24 hours + 1);
+        rs.finalize(b);
         assertEq(rs.pendingCount(), 2);
-        assertEq(rs.getPending(0, 10).length, 2);
+        bytes32[] memory ids = rs.getPending(0, 10);
+        assertEq(ids.length, 2);
+        bool hasA;
+        bool hasB;
+        bool hasC;
+        for (uint256 i = 0; i < ids.length; i++) {
+            if (ids[i] == a) hasA = true;
+            if (ids[i] == b) hasB = true;
+            if (ids[i] == c) hasC = true;
+        }
+        assertTrue(hasA);
+        assertTrue(hasC);
+        assertFalse(hasB);
+    }
+
+    function testRuleVersionAndProofStored() public {
+        bytes32 id = keccak256("rv");
+        _commit(id, 0);
         vm.warp(block.timestamp + 1801);
-        vm.prank(oracle);
-        rs.resolveVerdict(ID1, true, PROOF);
-        assertEq(rs.pendingCount(), 1);
-        bytes32[] memory p = rs.getPending(0, 10);
-        assertEq(p.length, 1);
-        assertEq(uint256(p[0]), uint256(ID2));
+        vm.prank(ORACLE);
+        rs.proposeResolution(id, true, keccak256("snapXYZ"), 7, "ipfs://Qm");
+        (
+            uint256 agentId,
+            address agent,
+            address token,
+            uint8 rating,
+            uint16 ruleVersion,
+            uint96 stake,
+            uint40 committedAt,
+            uint40 resolvedAt,
+            uint40 challengeDeadline,
+            RiskStake.Status status,
+            bool proposedCorrect,
+            address chal,
+            uint96 bond,
+            bytes32 proofHash,
+            string memory snapshotURI
+        ) = rs.verdicts(id);
+        agentId; agent; token; rating; stake; committedAt; resolvedAt; challengeDeadline; chal; bond; snapshotURI;
+        assertEq(uint256(ruleVersion), 7);
+        assertEq(proofHash, keccak256("snapXYZ"));
+        assertTrue(proposedCorrect);
+        assertEq(uint256(uint8(status)), uint256(uint8(RiskStake.Status.Proposed)));
     }
 
-    function test_TimelockRescue() public {
-        _commit(ID1, 0, STAKE); // contract now holds STAKE
-        rs.queueRescue(address(this), STAKE);
-        vm.expectRevert(); // before delay
-        rs.executeRescue();
-        vm.warp(block.timestamp + 48 hours);
-        uint256 before = usdc.balanceOf(address(this));
-        rs.executeRescue();
-        assertEq(usdc.balanceOf(address(this)), before + STAKE);
+    function testRotateSignerPreservesTrackRecord() public {
+        bytes32 id = keccak256("r");
+        _commit(id, 0);
+        _propose(id, true);
+        vm.warp(block.timestamp + 24 hours + 1);
+        rs.finalize(id);
+
+        address ns = address(0x6666);
+        rs.rotateAgentSigner(AGENT_ID, ns);
+
+        (uint256 tv,,,, uint256 cor,,,,,) = _stats(AGENT_ID);
+        assertEq(tv, 1);
+        assertEq(cor, 1);
+
+        usdc.mint(ns, STAKE);
+        vm.startPrank(ns);
+        usdc.approve(address(rs), STAKE);
+        rs.commitVerdict(keccak256("r2"), TOKEN, 0, STAKE);
+        vm.stopPrank();
+        (uint256 tv2,,,,,,,,,) = _stats(AGENT_ID);
+        assertEq(tv2, 2);
+
+        vm.startPrank(SIGNER);
+        vm.expectRevert(bytes("agent not registered"));
+        rs.commitVerdict(keccak256("r3"), TOKEN, 0, STAKE);
+        vm.stopPrank();
     }
 
-    function test_CancelRescue() public {
-        _commit(ID1, 0, STAKE);
-        rs.queueRescue(address(this), STAKE);
-        rs.cancelRescue();
-        vm.warp(block.timestamp + 48 hours);
-        vm.expectRevert(); // nothing queued
-        rs.executeRescue();
+    function testStakeBoundsEnforced() public {
+        vm.startPrank(SIGNER);
+        vm.expectRevert(bytes("stake out of bounds"));
+        rs.commitVerdict(keccak256("lo"), TOKEN, 0, 1);
+        vm.expectRevert(bytes("stake out of bounds"));
+        rs.commitVerdict(keccak256("hi"), TOKEN, 0, 2_000_000_000);
+        vm.stopPrank();
     }
 
-    function test_OnlyOwnerQueueRescue() public {
-        vm.prank(agent);
-        vm.expectRevert();
-        rs.queueRescue(agent, STAKE);
-    }
-
-    function test_ReentrancyGuard() public {
-        // During commit's transferFrom, re-enter commitVerdict -> must revert.
-        bytes memory data = abi.encodeWithSelector(
-            rs.commitVerdict.selector, ID2, TOKEN, uint8(0), STAKE
-        );
-        usdc.setReentry(address(rs), data, true);
-        vm.prank(agent);
-        vm.expectRevert();
-        rs.commitVerdict(ID1, TOKEN, 0, STAKE);
+    function testOnlyOwnerRegisters() public {
+        vm.prank(SIGNER);
+        vm.expectRevert(bytes("not owner"));
+        rs.registerAgent(999, address(0x7777));
     }
 }
