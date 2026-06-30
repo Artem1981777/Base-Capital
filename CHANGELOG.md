@@ -2,6 +2,15 @@
 
 All notable changes to Base Capital are documented here. Format based on [Keep a Changelog](https://keepachangelog.com); this project follows semantic versioning.
 
+## v4 (in progress) - 2026-06-30
+
+### Backtest rigor
+- Replaced single-oracle n=2 backtest with multi-oracle consensus ground truth (honeypot.is + GoPlus + post-hoc liquidity drain).
+- Expanded universe 48 -> 133 candidates (94 labelled) via rate-limit-aware GeckoTerminal harvest (429 backoff); no hardcoded token list.
+- Added Wilson 95% confidence intervals on precision/recall and Cohen's kappa for inter-oracle agreement.
+- Measured @threshold 75 (with simulation): recall 1.00 (CI [0.44,1], n=3), precision 0.077 (CI [0.027,0.20], n=39); precision conservative-by-design, recall on confirmed rugs is the safety metric.
+- Dated report archived to proofs/backtest-<date>.json.
+
 ## [1.0.0] — 2026-06-28
 
 Production-grade upgrade hardening the agent's on-chain reputation against the "zero-trust" critique: deterministic & verifiable resolution, real separation of powers, no unbounded drain, a real stake, and a measured risk engine.

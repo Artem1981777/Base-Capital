@@ -326,6 +326,17 @@ A GitHub Actions `CI` workflow now runs on every push and pull request: it type-
 ### 2026-06-30 - Discovery surface live + payout routed to treasury
 Autonomous agents can now discover the API with no human in the loop: `/.well-known/x402.json` (x402 manifest with builder code, priced resources, payTo and network), `/llms.txt` (capability summary for LLM crawlers), `/openapi.json` (with `x-payment-info`) and `/manifest` are all served, and `GET /v1/risk/{token}` returns HTTP 402 with payment requirements. The API is submitted to the awesome-x402 directory (PR #672) and registered on x402scan. x402 settlements now pay out to the on-chain treasury `0x45e029499424FCc76aFb55b3beE7D16116db0a97` (mrgro81.base.eth) - the same address the RiskStake contract slashes into - so all value flows through one Base App identity. Every paid call and on-chain write stays tagged with Builder Code `bc_kob8hqa0`.
 
+### 2026-06-30 - Backtest hardened: multi-oracle ground truth, n=94 labeled
+
+The single-oracle n=2 backtest was the weakest part of the v3 proof. v4 rebuilds it:
+
+- **Ground truth is a consensus of three independent signals** that never reuse the engine's own score: honeypot.is buy/sell simulation, GoPlus contract-security hard-rug flags, and a post-hoc on-chain liquidity-drain check. A token is labelled BAD only if an independent hard source confirms a rug.
+- **Universe expanded from 48 to 133 candidates (94 labelled)** by harvesting live Base pools from GeckoTerminal (new_pools + trending_pools) with rate-limit-aware backoff - no hardcoded token list.
+- **Metrics carry explicit class sizes and Wilson 95% confidence intervals.** At threshold 75 with live simulation: recall 1.00 on the confirmed-rug class (95% CI [0.44, 1.0], n=3); precision 0.077 (95% CI [0.027, 0.20], n=39).
+- **Honest interpretation:** the risk score is a liquidity/maturity gauge, not a pure honeypot classifier. Low precision reflects precautionary flags on immature, low-liquidity pools that are currently sellable but unproven - reported transparently rather than threshold-tuned to inflate the number. The safety-critical metric is recall on confirmed rugs, which is 1.0.
+- **Inter-oracle agreement** (honeypot.is vs GoPlus) is Cohen's kappa: observed agreement 96.9%, kappa near 0 under the ~3% rug base-rate imbalance, which motivates accumulating more confirmed-rug samples over time.
+- Every dated report is archived to proofs/backtest-<date>.json and served read-only at GET /backtest. Every paid call and on-chain write stays tagged with Builder Code `bc_kob8hqa0`.
+
 ### 2026-06-30 - x402 v2 Bazaar discovery extension on paid endpoints
 Both paid routes now declare an x402 v2 Bazaar discovery extension (`@x402/extensions/bazaar`), so any Bazaar-aware facilitator or indexer can catalog the service automatically, and the input/output JSON schemas are embedded directly in the HTTP 402 response - an AI agent learns how to call `/v1/risk/:token` and `/v1/signal/trending` without reading docs. The extension is non-required, so the live xpay settlement path is unaffected - verified in production: `/v1/risk` still returns HTTP 402 while `/.well-known/x402.json` and `/v1/feed` return 200. Combined with the live `/.well-known/x402.json`, `/llms.txt`, the awesome-x402 listing (PR #672) and the x402 Foundation ecosystem request (issue #2745), Base Capital is discoverable across keyless channels with no dependency on a CDP API key.
 
