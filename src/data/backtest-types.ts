@@ -9,6 +9,7 @@ export type BacktestRow = {
   truth: "bad" | "good"
   correct: boolean
   oracleReason: string
+  sources?: string[] // v4: independent sources confirming a BAD label
 }
 
 export type BacktestMetrics = {
@@ -19,6 +20,25 @@ export type BacktestMetrics = {
 }
 
 export type BacktestPoint = { threshold: number } & BacktestMetrics
+
+// v4: Wilson 95% score interval for a proportion.
+export type Interval = { lo: number; hi: number }
+
+export type BacktestCI = {
+  method: string
+  precision: Interval & { n: number }
+  recall: Interval & { n: number }
+}
+
+// v4: inter-oracle agreement (honeypot.is vs GoPlus), Cohen's kappa.
+export type OracleAgreement = {
+  raters: string
+  n: number
+  agree: number
+  observed: number
+  expected: number
+  kappa: number
+}
 
 export type BacktestReport = {
   generatedAt: string | null
@@ -33,9 +53,15 @@ export type BacktestReport = {
     skippedUnknown: number
   }
   confusion: { tp: number; fp: number; tn: number; fn: number }
-  metrics: BacktestMetrics // WITH simulation (production setting)
-  metricsNoSim: BacktestMetrics // WITHOUT simulation (static engine, ablation)
-  sweep: BacktestPoint[] // WITH simulation
+  metrics: BacktestMetrics
+  metricsNoSim: BacktestMetrics
+  sweep: BacktestPoint[]
   rows: BacktestRow[]
   notes: string[]
+  // ---- v4 additions (optional so previously generated reports still type) ----
+  positives?: number
+  ci?: BacktestCI
+  agreement?: OracleAgreement
+  groundTruthSources?: string[]
+  methodology?: string[]
 }
