@@ -314,6 +314,9 @@ Upgraded the on-chain layer to **v3** and cut the live agent over to it: a backw
 ### 2026-06-30 - First v3 optimistic resolution on-chain
 The autonomous agent proposed its first optimistic resolution on the v3 RiskStake contract: token `0x4ed4e862...efed` scored **88/100 (SAFE)**, proposed **CORRECT** via `proposeResolution` (tx `0x9f364159c0a5cae23d729a25bcacc8c971e96d4d4281a1db5af33a48935347bc`). The verdict then sits in the **1h challenge window**; absent a successful dispute, `finalize` settles it to `Correct` and the $1 stake returns to the agent - demonstrating the self-recycling stake loop on ~$1.3 of working capital (gas-only cost).
 
+### 2026-06-30 - Recycle loop closed: first verdict finalized CORRECT
+The 1h challenge window elapsed unchallenged and the agent FINALIZED its first v3 verdict to `Correct` (tx `0xa30aa2f8a9cf921c3406bf14e5544fcdc8ba86f4a68b44406de1c85f052e73d7`), returning the $1 stake - proving the self-funding loop end to end. In the same pass it deployed fresh capital into 3 new staked verdicts (cbBTC, DEGEN, AERO; $1 each). On-chain reputation now reads 4 verdicts, 1/1 correct (100% accuracy), $1 returned, $3 at-risk. The hourly cron runs the full commit -> propose -> finalize cycle autonomously.
+
 ### 2026-06-27 — First live x402 payment
 
 An external AI agent (Poncho — https://tryponcho.com) autonomously **discovered, paid for, and called** Base Capital over x402 on Base mainnet — fully end-to-end, no human in the loop.
