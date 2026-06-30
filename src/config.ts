@@ -15,7 +15,7 @@ export const config = {
 		? "https://facilitator.xpay.sh"
 		: "https://x402.org/facilitator",
 	// USDC payout / identity. Basename resolves to the registered payout address.
-	payTo: process.env.PAY_TO ?? "artem00777.base.eth",
+	payTo: process.env.PAY_TO ?? "0x45e029499424FCc76aFb55b3beE7D16116db0a97",
 	// Base Builder Code for ERC-8021 attribution -> Builder Rewards
 	builderCode: process.env.BUILDER_CODE ?? "bc_kob8hqa0",
 	// Price per /v1/risk call (USDC)
