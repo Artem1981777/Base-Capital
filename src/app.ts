@@ -3,6 +3,7 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express"
 import { ExactEvmScheme } from "@x402/evm/exact/server"
 import { HTTPFacilitatorClient } from "@x402/core/server"
 import { BUILDER_CODE, declareBuilderCodeExtension } from "@x402/extensions/builder-code"
+import { declareDiscoveryExtension } from "@x402/extensions/bazaar"
 import { config } from "./config.js"
 import { assessToken } from "./lib/risk.js"
 import { renderLanding } from "./landing.js"
@@ -264,6 +265,7 @@ export function createApp() {
 					// declareBuilderCodeExtension validates ^[a-z0-9_]{1,32}$ and throws otherwise.
 					extensions: {
 						[BUILDER_CODE]: declareBuilderCodeExtension(config.builderCode),
+					...declareDiscoveryExtension({ input: { token: "0x4200000000000000000000000000000000000006" }, inputSchema: { properties: { token: { type: "string" } }, required: ["token"] }, output: { example: { token: "0x4200000000000000000000000000000000000006", score: 82, rating: "SAFE", flags: [] } } }),
 					},
 				},
 				"GET /v1/signal/trending": {
@@ -280,6 +282,7 @@ export function createApp() {
 					mimeType: "application/json",
 					extensions: {
 						[BUILDER_CODE]: declareBuilderCodeExtension(config.builderCode),
+					...declareDiscoveryExtension({ output: { example: { trending: [{ token: "0x4200000000000000000000000000000000000006", score: 41, rating: "RISKY", flags: ["low_liquidity"] }] } } }),
 					},
 				},
 			},
