@@ -234,7 +234,7 @@ Go to mainnet by setting `NETWORK_MODE=mainnet` (the contract address, USDC, RPC
 - **`stake.yml`** — runs `agent/stake.ts` every hour: commits fresh verdicts on-chain (budget-capped) and resolves matured ones. Needs the `DEPLOYER_PRIVATE_KEY` repo secret.
 - **`deploy-contract.yml`** — manual `workflow_dispatch` to deploy `RiskStake` with Foundry.
 
-All on-chain actions are bounded: max 3 commits and 3 resolves per run, $1 stake each.
+All on-chain actions are bounded: max 1 commit and 3 resolves per run, $1 stake each.
 
 ---
 

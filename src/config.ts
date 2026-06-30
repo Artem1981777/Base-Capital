@@ -51,7 +51,7 @@ export const config = {
 	// USDC staked behind each verdict (string, human units).
 	agentStakeUsd: process.env.AGENT_STAKE_USD ?? "1",
 	// Max verdicts committed / resolved per stake run (budget guard).
-	maxCommitsPerRun: Number(process.env.MAX_COMMITS_PER_RUN ?? 3),
+	maxCommitsPerRun: Number(process.env.MAX_COMMITS_PER_RUN ?? 1),
 	maxResolvesPerRun: Number(process.env.MAX_RESOLVES_PER_RUN ?? 3),
 	// Pending verdicts older than this (minutes) become eligible for resolution.
 	resolveAfterMinutes: Number(process.env.RESOLVE_AFTER_MINUTES ?? 50),
