@@ -320,6 +320,9 @@ The 1h challenge window elapsed unchallenged and the agent FINALIZED its first v
 ### 2026-06-30 - Reproducible proofs verified end to end
 All three proposed verdicts have their canonical risk snapshots archived under `proofs/` and independently verified: `verify-proof.ts` recomputes `keccak256(canonical)` locally and matches it byte-for-byte against the on-chain `proofHash` (3/3 PASS). Anyone can clone the repo and run `NETWORK_MODE=mainnet npx tsx verify-proof.ts` to confirm the agent cannot retroactively alter its stated reasoning. CI commit-back was hardened with git rebase --autostash so future snapshots auto-archive.
 
+### 2026-06-30 - Continuous integration + unit-tested decision rule
+A GitHub Actions `CI` workflow now runs on every push and pull request: it type-checks the whole codebase (`tsc --noEmit`) and runs the test suite (`vitest run`). The suite has two layers. (1) Golden-vector tests recompute `keccak256` of each archived proof and assert it matches the on-chain `proofHash`, locking the zero-trust reproducibility invariant against regressions. (2) Unit tests cover the resolution rule itself: the deterministic SAFE/RISKY/RUG logic was extracted from the staking script into a pure, exported `isVerdictCorrect()` (`src/lib/verdictRule.ts`) with no behavior change - the canonical snapshot and historical proof hashes stay byte-for-byte identical - so the exact logic that decides correct vs wrong on-chain is now guarded by boundary tests (score 74 vs 75, hard-rug overriding a high score, RISKY/RUG branch). 11 tests pass green.
+
 ### 2026-06-27 — First live x402 payment
 
 An external AI agent (Poncho — https://tryponcho.com) autonomously **discovered, paid for, and called** Base Capital over x402 on Base mainnet — fully end-to-end, no human in the loop.
