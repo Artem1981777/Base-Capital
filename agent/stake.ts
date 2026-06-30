@@ -34,6 +34,7 @@ import {
   VerdictStatus,
 } from "../src/lib/stake.js"
 import { keccak256, toBytes, type Hex } from "viem"
+import { hasHardRug, isVerdictCorrect } from "../src/lib/verdictRule.js"
 import { mkdirSync, writeFileSync } from "node:fs"
 
 // On-chain rule version bound into every proof snapshot. Bump when the
@@ -41,7 +42,7 @@ import { mkdirSync, writeFileSync } from "node:fs"
 const RULE_VERSION = 1
 
 const RATING: Record<string, number> = { SAFE: 0, RISKY: 1, LIKELY_RUG: 2 }
-const HARD_RUG_FLAGS = ["honeypot", "cannot_sell_all", "cannot_buy", "sim_honeypot", "sim_extreme_sell_tax"]
+// HARD_RUG_FLAGS now lives in src/lib/verdictRule.ts
 
 function idHex(hash: string): Hex {
   return (hash.startsWith("0x") ? hash : `0x${hash}`) as Hex
@@ -122,9 +123,8 @@ async function processPending(): Promise<{ proposed: number; finalized: number }
     if (nowSec - v.committedAt < minAgeSec) continue
     try {
       const r = await assessToken(v.token)
-      const hardRug = HARD_RUG_FLAGS.some((f) => r.flags.includes(f))
-      const saidSafe = v.rating === 0
-      const correct = saidSafe ? !hardRug && r.score >= 75 : hardRug || r.score < 75
+      const hardRug = hasHardRug(r.flags)
+            const correct = isVerdictCorrect(v.rating, r.score, r.flags)
 
       const snapshot = {
         v: RULE_VERSION,
