@@ -317,6 +317,9 @@ The autonomous agent proposed its first optimistic resolution on the v3 RiskStak
 ### 2026-06-30 - Recycle loop closed: first verdict finalized CORRECT
 The 1h challenge window elapsed unchallenged and the agent FINALIZED its first v3 verdict to `Correct` (tx `0xa30aa2f8a9cf921c3406bf14e5544fcdc8ba86f4a68b44406de1c85f052e73d7`), returning the $1 stake - proving the self-funding loop end to end. In the same pass it deployed fresh capital into 3 new staked verdicts (cbBTC, DEGEN, AERO; $1 each). On-chain reputation now reads 4 verdicts, 1/1 correct (100% accuracy), $1 returned, $3 at-risk. The hourly cron runs the full commit -> propose -> finalize cycle autonomously.
 
+### 2026-06-30 - Reproducible proofs verified end to end
+All three proposed verdicts have their canonical risk snapshots archived under `proofs/` and independently verified: `verify-proof.ts` recomputes `keccak256(canonical)` locally and matches it byte-for-byte against the on-chain `proofHash` (3/3 PASS). Anyone can clone the repo and run `NETWORK_MODE=mainnet npx tsx verify-proof.ts` to confirm the agent cannot retroactively alter its stated reasoning. CI commit-back was hardened with git rebase --autostash so future snapshots auto-archive.
+
 ### 2026-06-27 — First live x402 payment
 
 An external AI agent (Poncho — https://tryponcho.com) autonomously **discovered, paid for, and called** Base Capital over x402 on Base mainnet — fully end-to-end, no human in the loop.
