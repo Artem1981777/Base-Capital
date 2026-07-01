@@ -3,6 +3,12 @@
 All notable changes to Base Capital are documented here. Format based on [Keep a Changelog](https://keepachangelog.com); this project follows semantic versioning.
 
 ## v4 (in progress) - 2026-06-30
+### Deterministic on-chain arbiter (RiskStake v4)
+- Verdict decision inputs (score + hard-rug flag bitmap) committed on-chain; `finalize` and permissionless `resolveChallengeAuto` recompute correctness via a pure `isVerdictCorrect()` mirroring `verdictRule.ts` (MIN_SAFE_SCORE=75, five hard-rug flags).
+- Risk-scaled challenge bonds (`requiredBond = max(floor, stake * bondBps / 10000)`, 10% default); honest challenge nets bond + 50% of slashed stake, frivolous forfeits a stake-scaled bond.
+- Emergency pause (exits always open) + preserved 48h rescue timelock.
+- Backward-compatible: legacy 4-arg commitVerdict, all v3 signatures and historical proofHash preserved; 26/26 Foundry tests (16 legacy + 10 new) green.
+
 
 ### Backtest rigor
 - Replaced single-oracle n=2 backtest with multi-oracle consensus ground truth (honeypot.is + GoPlus + post-hoc liquidity drain).

@@ -326,6 +326,13 @@ A GitHub Actions `CI` workflow now runs on every push and pull request: it type-
 ### 2026-06-30 - Discovery surface live + payout routed to treasury
 Autonomous agents can now discover the API with no human in the loop: `/.well-known/x402.json` (x402 manifest with builder code, priced resources, payTo and network), `/llms.txt` (capability summary for LLM crawlers), `/openapi.json` (with `x-payment-info`) and `/manifest` are all served, and `GET /v1/risk/{token}` returns HTTP 402 with payment requirements. The API is submitted to the awesome-x402 directory (PR #672) and registered on x402scan. x402 settlements now pay out to the on-chain treasury `0x45e029499424FCc76aFb55b3beE7D16116db0a97` (mrgro81.base.eth) - the same address the RiskStake contract slashes into - so all value flows through one Base App identity. Every paid call and on-chain write stays tagged with Builder Code `bc_kob8hqa0`.
 
+### 2026-07-02 - RiskStake v4: deterministic on-chain arbiter
+
+- **Zero-trust resolution.** A verdict's decision inputs (risk score + a hard-rug flag bitmap) are committed on-chain, and both `finalize` and the new permissionless `resolveChallengeAuto` recompute correctness with a pure `isVerdictCorrect()` that mirrors `src/lib/verdictRule.ts` byte-for-byte (`MIN_SAFE_SCORE = 75`, five hard-rug flags). Settlement is the contract's verdict, not the owner's word.
+- **Risk-scaled dispute economics.** Challenge bond `= max(floor, stake * challengeBondBps / 10000)` (10% default). An honest challenger recovers their bond and earns 50% of the slashed stake, so truthful challenges are always net-positive while frivolous ones forfeit a stake-scaled bond.
+- **Emergency pause** halts new commits but never blocks exits: `finalize`, `resolveChallengeAuto`, and the 48h time-locked rescue stay open.
+- **Backward-compatible.** Every v3 public signature and historical `proofHash` is preserved; the legacy 4-arg `commitVerdict` still works, and all 16 v3 tests pass unchanged. 26/26 Foundry tests green.
+
 ### 2026-06-30 - Backtest hardened: multi-oracle ground truth, n=94 labeled
 
 The single-oracle n=2 backtest was the weakest part of the v3 proof. v4 rebuilds it:
