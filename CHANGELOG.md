@@ -8,6 +8,7 @@ All notable changes to Base Capital are documented here. Format based on [Keep a
 - Risk-scaled challenge bonds (`requiredBond = max(floor, stake * bondBps / 10000)`, 10% default); honest challenge nets bond + 50% of slashed stake, frivolous forfeits a stake-scaled bond.
 - Emergency pause (exits always open) + preserved 48h rescue timelock.
 - Backward-compatible: legacy 4-arg commitVerdict, all v3 signatures and historical proofHash preserved; 26/26 Foundry tests (16 legacy + 10 new) green.
+- Deployed + Sourcify-verified on Base mainnet at 0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037; agent 57556 migrated to the 6-arg commitVerdict (commits score + hard-rug bitmap) so resolveChallengeAuto adjudicates disputes deterministically. v3 (0x0eC7de61…440e) retained for historical proofs.
 
 
 ### Backtest rigor

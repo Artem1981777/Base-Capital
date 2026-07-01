@@ -71,6 +71,7 @@ Key functions:
 
 | | |
 |---|---|
+| Contract (v4, live) | [`0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037`](https://basescan.org/address/0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037) — **verified (Sourcify `exact_match`)**, agent commits decision inputs |
 | Contract (v3) | [`0x0eC7de61eE08659743A896FeB15BfB99361f440e`](https://basescan.org/address/0x0eC7de61eE08659743A896FeB15BfB99361f440e) — **verified (Sourcify `exact_match`)** |
 | Legacy (v2) | [`0x21d49dE1f154FF49608acbc750926e6d7Db22cCB`](https://basescan.org/address/0x21d49dE1f154FF49608acbc750926e6d7Db22cCB) — original track record, retained read-only |
 | Agent identity | ERC-8004 agentId `57556` · signer `0x404d641eB58352c5AA23aF6b16d08f0C979f6778` |
@@ -332,6 +333,7 @@ Autonomous agents can now discover the API with no human in the loop: `/.well-kn
 - **Risk-scaled dispute economics.** Challenge bond `= max(floor, stake * challengeBondBps / 10000)` (10% default). An honest challenger recovers their bond and earns 50% of the slashed stake, so truthful challenges are always net-positive while frivolous ones forfeit a stake-scaled bond.
 - **Emergency pause** halts new commits but never blocks exits: `finalize`, `resolveChallengeAuto`, and the 48h time-locked rescue stay open.
 - **Backward-compatible.** Every v3 public signature and historical `proofHash` is preserved; the legacy 4-arg `commitVerdict` still works, and all 16 v3 tests pass unchanged. 26/26 Foundry tests green.
+- **Live on Base mainnet.** v4 is deployed and Sourcify-verified (`exact_match`) at [`0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037`](https://basescan.org/address/0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037); agent 57556 was re-registered and now commits decision inputs (score + hard-rug bitmap) on every verdict via the 6-arg `commitVerdict`, so `resolveChallengeAuto` can adjudicate disputes without a trusted owner. The predecessor v3 (`0x0eC7de61…440e`) stays verified for historical proofs.
 
 ### 2026-06-30 - Backtest hardened: multi-oracle ground truth, n=94 labeled
 
