@@ -12,7 +12,7 @@
 // Inter-oracle agreement (honeypot.is vs GoPlus) is reported as Cohen's kappa.
 //
 // Run: NETWORK_MODE=mainnet npx tsx agent/backtest.ts
-import { writeFileSync } from "node:fs"
+import { writeFileSync, readFileSync, existsSync } from "node:fs"
 import { join } from "node:path"
 import { assessToken } from "../src/lib/risk.js"
 import { honeypotLabel } from "../src/lib/honeypot.js"
@@ -128,6 +128,18 @@ async function harvestRisky(): Promise<Candidate[]> {
   return out
 }
 
+const RUG_REGISTRY_PATH = join(process.cwd(), "proofs", "rug-registry.json")
+type RugEntry = { symbol: string; token: string; sources: string[]; firstSeen: string }
+function loadRugRegistry(): RugEntry[] {
+  try {
+    if (existsSync(RUG_REGISTRY_PATH)) return JSON.parse(readFileSync(RUG_REGISTRY_PATH, "utf8")) as RugEntry[]
+  } catch {}
+  return []
+}
+function saveRugRegistry(entries: RugEntry[]): void {
+  writeFileSync(RUG_REGISTRY_PATH, JSON.stringify(entries, null, 2))
+}
+
 async function buildUniverse(): Promise<Candidate[]> {
   let discovered: WatchToken[] = []
   try {
@@ -142,6 +154,7 @@ async function buildUniverse(): Promise<Candidate[]> {
     ...discovered.map((t) => ({ symbol: t.symbol, address: t.address, blueChip: false })),
     ...risky,
     ...logVerdicts.map((v) => ({ symbol: v.symbol, address: v.token, blueChip: false })),
+    ...loadRugRegistry().map((r) => ({ symbol: r.symbol, address: r.token, blueChip: false })),
   ]
   return dedupe(cands).slice(0, MAX)
 }
@@ -282,7 +295,7 @@ async function main() {
     let truth: "bad" | "good" | "unknown"
     if (sources.length > 0) {
       truth = "bad"
-    } else if (hpLab === "good" || gpLab === "good" || c.blueChip) {
+    } else if (c.blueChip || hpLab === "good" || (gpLab === "good" && curLiq >= 10_000)) {
       truth = "good"
     } else {
       truth = "unknown"
@@ -372,6 +385,18 @@ async function main() {
   const stamp = (report.generatedAt ?? new Date().toISOString()).slice(0, 10)
   const proofPath = join(process.cwd(), "proofs", `backtest-${stamp}.json`)
   writeFileSync(proofPath, JSON.stringify(report, null, 2))
+  const rugReg = loadRugRegistry()
+  const rugMap = new Map<string, RugEntry>(rugReg.map((r) => [r.token.toLowerCase(), r]))
+  for (const row of rows) {
+    if (row.truth !== "bad") continue
+    const key = row.token.toLowerCase()
+    if (!rugMap.has(key)) {
+      rugMap.set(key, { symbol: row.symbol, token: row.token, sources: row.sources ?? [], firstSeen: report.generatedAt ?? new Date().toISOString() })
+    }
+  }
+  const mergedReg = [...rugMap.values()]
+  saveRugRegistry(mergedReg)
+  console.log(`rug-registry: ${mergedReg.length} confirmed rugs tracked (was ${rugReg.length})`)
 
   console.log("")
   console.log(`labeled=${samplesSim.length} bad=${bad} good=${good} skipped=${skipped}`)

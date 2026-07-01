@@ -1,0 +1,34 @@
+[
+  {
+    "symbol": "Surplus",
+    "token": "0xc52aedec3374422d7510e294cfaa90799595cba3",
+    "sources": [
+      "honeypot.is"
+    ],
+    "firstSeen": "2026-07-01T20:48:14.728Z"
+  },
+  {
+    "symbol": "KEYCAT",
+    "token": "0x9a26f5433671751c3276a065f57e5a02d2817973",
+    "sources": [
+      "honeypot.is"
+    ],
+    "firstSeen": "2026-07-01T20:48:14.728Z"
+  },
+  {
+    "symbol": "NOCK",
+    "token": "0x9b5e262cf9bb04869ab40b19af91d2dc85761722",
+    "sources": [
+      "honeypot.is"
+    ],
+    "firstSeen": "2026-07-01T20:48:14.728Z"
+  },
+  {
+    "symbol": "PROS",
+    "token": "0x8b7dde054be9d180c1be7fae0874697374a49832",
+    "sources": [
+      "honeypot.is"
+    ],
+    "firstSeen": "2026-07-01T20:48:14.728Z"
+  }
+]
