@@ -8,12 +8,14 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-/// @title RiskStake v3
-/// @notice Optimistic on-chain resolution with a public challenge window,
-/// agentId-bound (ERC-8004) reputation, an O(1) pending index, and on-chain
-/// rule versioning + input-snapshot pointers for independently reproducible
-/// proofs. Roles stay separated (owner/oracle/treasury); rescue stays 48h
-/// time-locked exactly as in v2.
+/// @title RiskStake v4
+/// @notice v3 + a DETERMINISTIC on-chain arbiter. A verdict's decision inputs
+/// (risk score + hard-rug flag bitmap) are committed on-chain, and settlement
+/// re-runs a pure isVerdictCorrect() that mirrors off-chain verdictRule.ts
+/// byte-for-byte - so resolution is the contract's word, not the owner's.
+/// Adds risk-scaled challenge bonds and an emergency pause (exits stay open).
+/// Every v3 public signature and historical proofHash is preserved; the 48h
+/// time-locked rescue and separated owner/oracle/treasury roles are unchanged.
 contract RiskStake {
     enum Status { None, Pending, Proposed, Challenged, Correct, Wrong }
 
@@ -52,7 +54,20 @@ contract RiskStake {
         bool active;
     }
 
+    /// @notice Committed decision inputs enabling deterministic on-chain arbitration.
+    struct VerdictInputs {
+        uint8 score;
+        uint16 hardFlags;
+        bool set;
+    }
+
     uint256 public constant RESCUE_DELAY = 48 hours;
+
+    // Deterministic rule mirror of src/lib/verdictRule.ts (kept byte-compatible).
+    uint8 public constant MIN_SAFE_SCORE = 75;
+    // Bit0 honeypot | Bit1 cannot_sell_all | Bit2 cannot_buy | Bit3 sim_honeypot | Bit4 sim_extreme_sell_tax.
+    uint16 public constant HARD_RUG_MASK = 0x1F;
+    uint16 public constant RULE_VERSION = 4;
 
     IERC20 public immutable usdc;
     address public owner;
@@ -65,10 +80,13 @@ contract RiskStake {
     uint40 public challengeWindow;
     uint96 public challengeBondAmount;
     uint16 public challengeRewardBps;
+    uint16 public challengeBondBps;
+    bool public paused;
 
     RescueRequest public pendingRescue;
 
     mapping(bytes32 => Verdict) public verdicts;
+    mapping(bytes32 => VerdictInputs) public verdictInputs;
     bytes32[] public verdictIds;
 
     mapping(uint256 => AgentStats) private _stats;
@@ -84,6 +102,7 @@ contract RiskStake {
     event AgentRegistered(uint256 indexed agentId, address indexed signer, uint40 registeredAt);
     event AgentSignerRotated(uint256 indexed agentId, address indexed oldSigner, address indexed newSigner);
     event VerdictCommitted(bytes32 indexed id, uint256 indexed agentId, address indexed token, uint8 rating, uint256 stake);
+    event VerdictInputsCommitted(bytes32 indexed id, uint8 score, uint16 hardFlags);
     event ResolutionProposed(bytes32 indexed id, bool correct, uint16 ruleVersion, bytes32 proofHash, string snapshotURI, uint40 challengeDeadline);
     event ResolutionChallenged(bytes32 indexed id, address indexed challenger, uint256 bond);
     event ChallengeResolved(bytes32 indexed id, bool challengeSucceeded, bool finalCorrect);
@@ -94,6 +113,8 @@ contract RiskStake {
     event StakeBoundsUpdated(uint96 minStake, uint96 maxStake);
     event MinMaturityUpdated(uint40 minMaturity);
     event ChallengeParamsUpdated(uint40 challengeWindow, uint96 challengeBondAmount, uint16 challengeRewardBps);
+    event ChallengeBondBpsUpdated(uint16 challengeBondBps);
+    event PausedSet(bool paused);
     event RescueQueued(address indexed to, uint256 amount, uint40 eta);
     event RescueExecuted(address indexed to, uint256 amount);
     event RescueCancelled(address indexed to, uint256 amount);
@@ -101,6 +122,7 @@ contract RiskStake {
     modifier onlyOwner() { require(msg.sender == owner, "not owner"); _; }
     modifier onlyOracle() { require(msg.sender == oracle, "not oracle"); _; }
     modifier nonReentrant() { require(_locked == 1, "reentrant"); _locked = 2; _; _locked = 1; }
+    modifier whenNotPaused() { require(!paused, "paused"); _; }
 
     constructor(address _usdc, address _treasury, address _oracle) {
         require(_usdc != address(0) && _treasury != address(0) && _oracle != address(0), "zero addr");
@@ -114,6 +136,7 @@ contract RiskStake {
         challengeWindow = 24 hours;
         challengeBondAmount = 1_000_000;
         challengeRewardBps = 5000;
+        challengeBondBps = 1000;
     }
 
     function registerAgent(uint256 agentId, address signer) external onlyOwner {
@@ -136,7 +159,19 @@ contract RiskStake {
         emit AgentSignerRotated(agentId, old, newSigner);
     }
 
-    function commitVerdict(bytes32 id, address token, uint8 rating, uint256 stake) external nonReentrant {
+    /// @notice v3-compatible commit (no decision inputs; legacy owner arbitration).
+    function commitVerdict(bytes32 id, address token, uint8 rating, uint256 stake) external nonReentrant whenNotPaused {
+        _commit(id, token, rating, stake);
+    }
+
+    /// @notice v4 commit carrying decision inputs for deterministic arbitration.
+    function commitVerdict(bytes32 id, address token, uint8 rating, uint256 stake, uint8 score, uint16 hardFlags) external nonReentrant whenNotPaused {
+        _commit(id, token, rating, stake);
+        verdictInputs[id] = VerdictInputs({ score: score, hardFlags: hardFlags, set: true });
+        emit VerdictInputsCommitted(id, score, hardFlags);
+    }
+
+    function _commit(bytes32 id, address token, uint8 rating, uint256 stake) internal {
         require(verdicts[id].status == Status.None, "exists");
         require(rating <= 2, "bad rating");
         require(stake >= minStake && stake <= maxStake, "stake out of bounds");
@@ -187,29 +222,61 @@ contract RiskStake {
         emit ResolutionProposed(id, correct, ruleVersion, proofHash, snapshotURI, v.challengeDeadline);
     }
 
+    /// @notice Deterministic rule mirror of src/lib/verdictRule.ts.
+    /// rating 0 = SAFE: correct iff no hard-rug AND score >= 75.
+    /// rating 1|2 = RISKY/RUG: correct iff hard-rug OR score < 75.
+    function isVerdictCorrect(uint8 rating, uint8 score, uint16 hardFlags) public pure returns (bool) {
+        bool hardRug = (hardFlags & HARD_RUG_MASK) != 0;
+        if (rating == 0) {
+            return !hardRug && score >= MIN_SAFE_SCORE;
+        }
+        return hardRug || score < MIN_SAFE_SCORE;
+    }
+
+    /// @notice Risk-scaled challenge bond = max(floor, stake * bps / 1e4).
+    function requiredBond(uint256 stake) public view returns (uint256) {
+        uint256 scaled = (stake * challengeBondBps) / 10000;
+        return scaled > challengeBondAmount ? scaled : challengeBondAmount;
+    }
+
     function challengeResolution(bytes32 id) external nonReentrant {
         Verdict storage v = verdicts[id];
         require(v.status == Status.Proposed, "not challengeable");
         require(block.timestamp <= v.challengeDeadline, "window closed");
-        uint96 bond = challengeBondAmount;
+        uint256 bond = requiredBond(v.stake);
         require(usdc.transferFrom(msg.sender, address(this), bond), "bond failed");
         v.status = Status.Challenged;
         v.challenger = msg.sender;
-        v.challengeBond = bond;
+        v.challengeBond = uint96(bond);
         emit ResolutionChallenged(id, msg.sender, bond);
     }
 
+    /// @notice v3-compatible owner arbitration for verdicts without committed inputs.
     function resolveChallenge(bytes32 id, bool challengeSucceeded) external onlyOwner nonReentrant {
         Verdict storage v = verdicts[id];
         require(v.status == Status.Challenged, "not challenged");
-        bool finalCorrect = challengeSucceeded ? !v.proposedCorrect : v.proposedCorrect;
+        _resolve(id, v, challengeSucceeded);
+    }
 
+    /// @notice v4 deterministic, permissionless resolution: recomputes correctness
+    /// on-chain from the committed inputs, so no trusted party decides the outcome.
+    function resolveChallengeAuto(bytes32 id) external nonReentrant {
+        Verdict storage v = verdicts[id];
+        require(v.status == Status.Challenged, "not challenged");
+        VerdictInputs memory inp = verdictInputs[id];
+        require(inp.set, "no inputs");
+        bool finalCorrect = isVerdictCorrect(v.rating, inp.score, inp.hardFlags);
+        bool challengeSucceeded = finalCorrect != v.proposedCorrect;
+        _resolve(id, v, challengeSucceeded);
+    }
+
+    function _resolve(bytes32 id, Verdict storage v, bool challengeSucceeded) internal {
+        bool finalCorrect = challengeSucceeded ? !v.proposedCorrect : v.proposedCorrect;
         if (challengeSucceeded) {
             require(usdc.transfer(v.challenger, v.challengeBond), "bond return failed");
         } else {
             require(usdc.transfer(treasury, v.challengeBond), "bond slash failed");
         }
-
         _settle(id, v, finalCorrect, challengeSucceeded);
         emit ChallengeResolved(id, challengeSucceeded, finalCorrect);
     }
@@ -218,7 +285,9 @@ contract RiskStake {
         Verdict storage v = verdicts[id];
         require(v.status == Status.Proposed, "not finalizable");
         require(block.timestamp > v.challengeDeadline, "window open");
-        _settle(id, v, v.proposedCorrect, false);
+        VerdictInputs memory inp = verdictInputs[id];
+        bool correct = inp.set ? isVerdictCorrect(v.rating, inp.score, inp.hardFlags) : v.proposedCorrect;
+        _settle(id, v, correct, false);
     }
 
     function _settle(bytes32 id, Verdict storage v, bool correct, bool challengeWon) internal {
@@ -350,6 +419,17 @@ contract RiskStake {
         challengeBondAmount = _bond;
         challengeRewardBps = _rewardBps;
         emit ChallengeParamsUpdated(_window, _bond, _rewardBps);
+    }
+
+    function setChallengeBondBps(uint16 _bps) external onlyOwner {
+        require(_bps <= 10000, "bad bps");
+        challengeBondBps = _bps;
+        emit ChallengeBondBpsUpdated(_bps);
+    }
+
+    function setPaused(bool _p) external onlyOwner {
+        paused = _p;
+        emit PausedSet(_p);
     }
 
     function queueRescue(address to, uint256 amount) external onlyOwner {

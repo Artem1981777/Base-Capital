@@ -301,4 +301,129 @@ contract RiskStakeTest {
         vm.expectRevert(bytes("not owner"));
         rs.registerAgent(999, address(0x7777));
     }
+
+    // ---------- v4: deterministic arbiter, risk-scaled bond, pause ----------
+
+    function _commitV4(bytes32 id, uint8 rating, uint8 score, uint16 hardFlags) internal {
+        vm.prank(SIGNER);
+        rs.commitVerdict(id, TOKEN, rating, STAKE, score, hardFlags);
+    }
+
+    function testIsVerdictCorrectPure() public view {
+        assertTrue(rs.isVerdictCorrect(0, 80, 0));   // SAFE, high score, no flag
+        assertFalse(rs.isVerdictCorrect(0, 50, 0));  // SAFE but low score
+        assertFalse(rs.isVerdictCorrect(0, 80, 1));  // SAFE but hard-rug flag
+        assertFalse(rs.isVerdictCorrect(1, 80, 0));  // RISKY but nothing wrong
+        assertTrue(rs.isVerdictCorrect(2, 50, 0));   // RUG, low score
+        assertTrue(rs.isVerdictCorrect(2, 80, 1));   // RUG, hard-rug flag
+    }
+
+    function testCommitV4StoresInputs() public {
+        bytes32 id = keccak256("v4");
+        _commitV4(id, 0, 82, 5);
+        (uint8 sc, uint16 hf, bool st) = rs.verdictInputs(id);
+        assertEq(uint256(sc), 82);
+        assertEq(uint256(hf), 5);
+        assertTrue(st);
+    }
+
+    function testRequiredBondRiskScaled() public view {
+        assertEq(rs.requiredBond(1_000_000), 1_000_000);           // floor binds
+        assertEq(rs.requiredBond(1_000_000_000), 100_000_000);     // 10% scaling binds
+    }
+
+    function testFinalizeRecomputesFromInputs() public {
+        // SAFE rating but score<75 => WRONG on-chain, even though oracle lied correct=true.
+        bytes32 id = keccak256("recompute");
+        _commitV4(id, 0, 50, 0);
+        _propose(id, true);
+        vm.warp(block.timestamp + 24 hours + 1);
+        uint256 tb = usdc.balanceOf(TREASURY);
+        rs.finalize(id);
+        assertEq(usdc.balanceOf(TREASURY), tb + STAKE);
+        (,, uint256 tsl,,, uint256 wr,,,,) = _stats(AGENT_ID);
+        assertEq(tsl, STAKE);
+        assertEq(wr, 1);
+    }
+
+    function testResolveChallengeAutoHonestWins() public {
+        // oracle lies correct=true, but score<75 => isVerdictCorrect=false.
+        bytes32 id = keccak256("autoWin");
+        _commitV4(id, 0, 50, 0);
+        _propose(id, true);
+        vm.prank(CHALLENGER);
+        rs.challengeResolution(id);
+        uint256 chBefore = usdc.balanceOf(CHALLENGER);
+        uint256 tBefore = usdc.balanceOf(TREASURY);
+        rs.resolveChallengeAuto(id);
+        uint256 reward = STAKE / 2;
+        assertEq(usdc.balanceOf(CHALLENGER), chBefore + BOND + reward);
+        assertEq(usdc.balanceOf(TREASURY), tBefore + (STAKE - reward));
+        (,, uint256 tsl,,, uint256 wr,,,,) = _stats(AGENT_ID);
+        assertEq(tsl, STAKE);
+        assertEq(wr, 1);
+    }
+
+    function testResolveChallengeAutoFrivolousLoses() public {
+        // oracle honest correct=true, score>=75 => isVerdictCorrect=true.
+        bytes32 id = keccak256("autoLose");
+        _commitV4(id, 0, 80, 0);
+        _propose(id, true);
+        vm.prank(CHALLENGER);
+        rs.challengeResolution(id);
+        uint256 chBefore = usdc.balanceOf(CHALLENGER);
+        uint256 aBefore = usdc.balanceOf(SIGNER);
+        uint256 tBefore = usdc.balanceOf(TREASURY);
+        rs.resolveChallengeAuto(id);
+        assertEq(usdc.balanceOf(CHALLENGER), chBefore);       // forfeits bond
+        assertEq(usdc.balanceOf(TREASURY), tBefore + BOND);   // bond to treasury
+        assertEq(usdc.balanceOf(SIGNER), aBefore + STAKE);    // agent stake returned
+        (,,,, uint256 cor,,,,,) = _stats(AGENT_ID);
+        assertEq(cor, 1);
+    }
+
+    function testResolveChallengeAutoRequiresInputs() public {
+        // legacy 4-arg commit carries no inputs => auto path reverts.
+        bytes32 id = keccak256("noInputs");
+        _commit(id, 0);
+        _propose(id, true);
+        vm.prank(CHALLENGER);
+        rs.challengeResolution(id);
+        vm.expectRevert(bytes("no inputs"));
+        rs.resolveChallengeAuto(id);
+    }
+
+    function testPauseBlocksCommitNotExits() public {
+        bytes32 id = keccak256("pauseExit");
+        _commitV4(id, 0, 80, 0);
+        _propose(id, true);
+        rs.setPaused(true);
+        vm.prank(SIGNER);
+        vm.expectRevert(bytes("paused"));
+        rs.commitVerdict(keccak256("blocked"), TOKEN, 0, STAKE);
+        vm.warp(block.timestamp + 24 hours + 1);
+        uint256 b0 = usdc.balanceOf(SIGNER);
+        rs.finalize(id);                                      // exit still open
+        assertEq(usdc.balanceOf(SIGNER), b0 + STAKE);
+    }
+
+    function testSetPausedOnlyOwner() public {
+        vm.prank(SIGNER);
+        vm.expectRevert(bytes("not owner"));
+        rs.setPaused(true);
+    }
+
+    function testRiskScaledBondChargedOnChallenge() public {
+        bytes32 id = keccak256("bigBond");
+        vm.prank(SIGNER);
+        rs.commitVerdict(id, TOKEN, 0, 1_000_000_000, 80, 0);
+        vm.warp(block.timestamp + 1801);
+        vm.prank(ORACLE);
+        rs.proposeResolution(id, true, keccak256("snap"), 1, "ipfs://cid");
+        uint256 chBefore = usdc.balanceOf(CHALLENGER);
+        vm.prank(CHALLENGER);
+        rs.challengeResolution(id);
+        assertEq(usdc.balanceOf(CHALLENGER), chBefore - 100_000_000); // 10% of 1e9
+    }
+
 }
