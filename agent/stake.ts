@@ -34,7 +34,7 @@ import {
   VerdictStatus,
 } from "../src/lib/stake.js"
 import { keccak256, toBytes, type Hex } from "viem"
-import { hasHardRug, isVerdictCorrect } from "../src/lib/verdictRule.js"
+import { hasHardRug, isVerdictCorrect, hardFlagsBitmap } from "../src/lib/verdictRule.js"
 import { mkdirSync, writeFileSync } from "node:fs"
 
 // On-chain rule version bound into every proof snapshot. Bump when the
@@ -66,7 +66,7 @@ async function commitFresh(stakeUnits: bigint): Promise<number> {
     try {
       const existing = await getVerdict(id)
       if (existing.status !== VerdictStatus.None) continue // already committed
-      const hash = await commitVerdict(id, v.token, rating, stakeUnits)
+      const hash = await commitVerdict(id, v.token, rating, stakeUnits, Math.round(v.score), hardFlagsBitmap(v.flags))
       committed++
       console.log(
         `committed ${v.symbol} ${v.verdict} stake $${config.agentStakeUsd} id ${id.slice(0, 10)} tx ${hash}`,

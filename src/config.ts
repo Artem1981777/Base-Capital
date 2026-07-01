@@ -33,7 +33,7 @@ export const config = {
 	// Deployed RiskStake contract: the agent stakes USDC behind every verdict.
 	riskStakeAddress:
 		process.env.RISKSTAKE_ADDRESS ??
-		(isMainnet ? "0x0eC7de61eE08659743A896FeB15BfB99361f440e" : ""),
+		(isMainnet ? "0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037" : ""),
 	// USDC token used for staking (6 decimals).
 	usdcAddress:
 		process.env.USDC_ADDRESS ??

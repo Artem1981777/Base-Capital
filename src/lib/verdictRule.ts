@@ -27,3 +27,13 @@ export function isVerdictCorrect(
   const hardRug = hasHardRug(flags)
   return saidSafe ? !hardRug && score >= MIN_SAFE_SCORE : hardRug || score < MIN_SAFE_SCORE
 }
+
+// Encode the hard-rug string flags into the uint16 bitmap the on-chain arbiter
+// reads. Bit order MUST match RiskStake.HARD_RUG_MASK (bit i = HARD_RUG_FLAGS[i]).
+export function hardFlagsBitmap(flags: readonly string[]): number {
+  let bits = 0
+  for (let i = 0; i < HARD_RUG_FLAGS.length; i++) {
+    if (flags.includes(HARD_RUG_FLAGS[i])) bits |= 1 << i
+  }
+  return bits
+}

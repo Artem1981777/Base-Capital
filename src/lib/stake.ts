@@ -171,6 +171,63 @@ export const riskStakeAbi = [
       { name: "identityAgeSeconds", type: "uint256" },
     ],
   },
+  {
+    name: "commitVerdict",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "id", type: "bytes32" },
+      { name: "token", type: "address" },
+      { name: "rating", type: "uint8" },
+      { name: "stake", type: "uint256" },
+      { name: "score", type: "uint8" },
+      { name: "hardFlags", type: "uint16" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "resolveChallengeAuto",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "id", type: "bytes32" }],
+    outputs: [],
+  },
+  {
+    name: "requiredBond",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "stake", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    name: "verdictInputs",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "id", type: "bytes32" }],
+    outputs: [
+      { name: "score", type: "uint8" },
+      { name: "hardFlags", type: "uint16" },
+      { name: "set", type: "bool" },
+    ],
+  },
+  {
+    name: "isVerdictCorrect",
+    type: "function",
+    stateMutability: "pure",
+    inputs: [
+      { name: "rating", type: "uint8" },
+      { name: "score", type: "uint8" },
+      { name: "hardFlags", type: "uint16" },
+    ],
+    outputs: [{ type: "bool" }],
+  },
+  {
+    name: "paused",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "bool" }],
+  },
 ] as const
 
 export const erc20Abi = [
@@ -423,6 +480,8 @@ export async function commitVerdict(
   token: string,
   rating: number,
   stake: bigint,
+  score: number,
+  hardFlags: number,
 ): Promise<Hex> {
   const { wallet } = agentWallet()
   const client = publicClient()
@@ -430,7 +489,7 @@ export async function commitVerdict(
     address: getAddress(config.riskStakeAddress),
     abi: riskStakeAbi,
     functionName: "commitVerdict",
-    args: [id, getAddress(token), rating, stake],
+    args: [id, getAddress(token), rating, stake, score, hardFlags],
     dataSuffix: BUILDER_CODE_SUFFIX,
   })
   await client.waitForTransactionReceipt({ hash })
