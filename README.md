@@ -334,6 +334,7 @@ Autonomous agents can now discover the API with no human in the loop: `/.well-kn
 - **Emergency pause** halts new commits but never blocks exits: `finalize`, `resolveChallengeAuto`, and the 48h time-locked rescue stay open.
 - **Backward-compatible.** Every v3 public signature and historical `proofHash` is preserved; the legacy 4-arg `commitVerdict` still works, and all 16 v3 tests pass unchanged. 26/26 Foundry tests green.
 - **Live on Base mainnet.** v4 is deployed and Sourcify-verified (`exact_match`) at [`0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037`](https://basescan.org/address/0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037); agent 57556 was re-registered and now commits decision inputs (score + hard-rug bitmap) on every verdict via the 6-arg `commitVerdict`, so `resolveChallengeAuto` can adjudicate disputes without a trusted owner. The predecessor v3 (`0x0eC7de61…440e`) stays verified for historical proofs.
+- **First live verdicts flowing.** The hourly agent has committed its first v4 verdicts on-chain, each carrying its decision inputs (`verdictInputs.set == true`, scores 84-96, no hard-rug flags): e.g. WETH 96/SAFE ([commit tx](https://basescan.org/tx/0xd33f106ec623888b6f0dfe7900fdf0c4f491f16c4ef1c73757cd1a580ac15bbf)) and cbBTC 84/SAFE ([commit tx](https://basescan.org/tx/0xa445223f725c99ba11ce7a7f4b0a973e23f5ba88f6daeac76c8a9c6717bcfde6)). `getAgentStats(57556)` on v4 reads 5 verdicts / $5 staked, and every commit stays tagged Builder Code `bc_kob8hqa0`.
 
 ### 2026-06-30 - Backtest hardened: multi-oracle ground truth, n=94 labeled
 

@@ -9,6 +9,7 @@ All notable changes to Base Capital are documented here. Format based on [Keep a
 - Emergency pause (exits always open) + preserved 48h rescue timelock.
 - Backward-compatible: legacy 4-arg commitVerdict, all v3 signatures and historical proofHash preserved; 26/26 Foundry tests (16 legacy + 10 new) green.
 - Deployed + Sourcify-verified on Base mainnet at 0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037; agent 57556 migrated to the 6-arg commitVerdict (commits score + hard-rug bitmap) so resolveChallengeAuto adjudicates disputes deterministically. v3 (0x0eC7de61…440e) retained for historical proofs.
+- First live v4 verdicts committed on mainnet with decision inputs (verdictInputs.set=true, scores 84-96, no hard flags); getAgentStats(57556) reads 5 verdicts / $5 staked. Example commit txs: WETH 0xd33f106e…, cbBTC 0xa445223f… — every write tagged Builder Code bc_kob8hqa0.
 
 
 ### Backtest rigor
