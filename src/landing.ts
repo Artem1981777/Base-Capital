@@ -21,6 +21,9 @@ export function renderLanding(opts: {
 <meta property="og:description" content="Instant onchain risk scores for Base tokens. Built for AI trading agents. Pay-per-call in USDC over x402." />
 <title>Base Capital — x402 onchain risk API</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+<meta property="og:image" content="https://base-capital.vercel.app/embed.svg" />
+<meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://base-capital.vercel.app/embed.svg","button":{"title":"Open Base Capital","action":{"type":"launch_miniapp","name":"Base Capital","url":"https://base-capital.vercel.app","splashImageUrl":"https://base-capital.vercel.app/icon.svg","splashBackgroundColor":"#07080a"}}}' />
+<meta name="fc:frame" content='{"version":"1","imageUrl":"https://base-capital.vercel.app/embed.svg","button":{"title":"Open Base Capital","action":{"type":"launch_frame","name":"Base Capital","url":"https://base-capital.vercel.app","splashImageUrl":"https://base-capital.vercel.app/icon.svg","splashBackgroundColor":"#07080a"}}}' />
 <style>
 *{box-sizing:border-box}
 html,body{margin:0}

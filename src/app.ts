@@ -55,6 +55,16 @@ export function createApp() {
 	})
 
 	// Machine-readable discovery doc for x402 indexers (x402scan). Free, ungated.
+	// Base App / Farcaster mini-app embed assets (SVG: 3:2 card + square icon).
+	const EMBED_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='800' viewBox='0 0 1200 800'><defs><linearGradient id='bg' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#0b1b3f'/><stop offset='1' stop-color='#07080a'/></linearGradient></defs><rect width='1200' height='800' fill='url(#bg)'/><path d='M150 168 l70 -28 l70 28 v78 c0 60 -38 100 -70 118 c-32 -18 -70 -58 -70 -118 z' fill='#4f8cff'/><text x='300' y='250' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='96' font-weight='800' fill='#ffffff'>Base Capital</text><text x='300' y='320' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='40' fill='#9ec0ff'>x402 onchain risk scores for Base</text><text x='150' y='540' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='40' fill='#e8eaed'>Staked on-chain - 100% accuracy - wrong calls slashed</text><text x='150' y='620' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='32' fill='#8a9099'>Builder Code bc_kob8hqa0 - ERC-8004 agent - pay-per-call USDC</text></svg>";
+	const ICON_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='#0b1b3f'/><path d='M146 150 l110 -44 l110 44 v120 c0 96 -60 160 -110 188 c-50 -28 -110 -92 -110 -188 z' fill='#4f8cff'/><text x='256' y='298' text-anchor='middle' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='118' font-weight='800' fill='#ffffff'>BC</text></svg>";
+	app.get("/embed.svg", (_req, res) => {
+		res.type("image/svg+xml").send(EMBED_SVG)
+	})
+	app.get("/icon.svg", (_req, res) => {
+		res.type("image/svg+xml").send(ICON_SVG)
+	})
+
 	app.get("/openapi.json", (_req, res) => {
 		const price = Number(config.riskPriceUsd).toFixed(6)
 		res.json({
