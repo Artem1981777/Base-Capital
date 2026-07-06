@@ -11,6 +11,7 @@ All notable changes to Base Capital are documented here. Format based on [Keep a
 - Deployed + Sourcify-verified on Base mainnet at 0xBaa5175987951E6DAb9Ae52CB4fa8b1C64Ca3037; agent 57556 migrated to the 6-arg commitVerdict (commits score + hard-rug bitmap) so resolveChallengeAuto adjudicates disputes deterministically. v3 (0x0eC7de61…440e) retained for historical proofs.
 - First live v4 verdicts committed on mainnet with decision inputs (verdictInputs.set=true, scores 84-96, no hard flags); getAgentStats(57556) reads 5 verdicts / $5 staked. Example commit txs: WETH 0xd33f106e…, cbBTC 0xa445223f… — every write tagged Builder Code bc_kob8hqa0.
 - Track record (2026-07-06): 20 v4 verdicts, 15 finalized CORRECT, 100% accuracy, 0% slash-rate; $15 stake recycled, $5 at-risk; agent ran reliably 4 days. Example finalize txs 0x1e0cba92, 0x6bab56e8.
+- Treasury reconciliation (2026-07-06): totalSlashed $0 / 100% accuracy across 20 verdicts; funds recycling not lost ($15 returned, $5 at-risk in v4, $2.83 liquid, $6 recoverable from retired v3); gas-only steady-state (about $0.10 ETH over 4 days); both crons healthy; loop self-funding, agent kept running for a long-lived on-chain track record.
 
 
 ### Backtest rigor
