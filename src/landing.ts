@@ -20,6 +20,7 @@ export function renderLanding(opts: {
 <meta property="og:title" content="Base Capital — x402 risk scores for Base" />
 <meta property="og:description" content="Instant onchain risk scores for Base tokens. Built for AI trading agents. Pay-per-call in USDC over x402." />
 <title>Base Capital — x402 onchain risk API</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
 <style>
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -146,6 +147,7 @@ const risk = await res.json()
 <div class="card" id="onchaincard" style="margin-top:16px">
 <h3 style="margin:0 0 4px;font-size:1rem">🔗 On-chain reputation · RiskStake</h3>
 <p class="muted" style="margin:0 0 14px">The agent stakes USDC behind every verdict on Base mainnet — wrong calls are slashed to the treasury, correct calls are returned in full. Trustless and verifiable: <a id="oclink" href="https://basescan.org" target="_blank" rel="noopener">view the contract on BaseScan</a>.</p>
+<p class="muted" style="margin:-6px 0 14px;font-size:.85rem">On-chain staked verdicts are a high-conviction subset of the agent's off-chain scores above - only the strongest calls get real USDC staked behind them on-chain.</p>
 <div id="ocstats" style="display:flex;gap:10px;flex-wrap:wrap"><div class="hint">Loading on-chain stats…</div></div>
 </div>
 
