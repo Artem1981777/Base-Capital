@@ -65,6 +65,35 @@ export function createApp() {
 		res.type("image/svg+xml").send(ICON_SVG)
 	})
 
+	// Liveness/health probe: RPC reachability + contract config. Free, ungated.
+	app.get("/healthz", async (_req, res) => {
+		const checks: Record<string, unknown> = {}
+		let rpcOk = false
+		try {
+			const ctrl = new AbortController()
+			const timer = setTimeout(() => ctrl.abort(), 4000)
+			const r = await fetch(config.rpcUrl, {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
+				signal: ctrl.signal,
+			})
+			clearTimeout(timer)
+			const j = (await r.json()) as { result?: string }
+			rpcOk = Boolean(j && j.result)
+			checks.rpc = { ok: rpcOk, blockNumber: j.result ?? null }
+		} catch (err) {
+			checks.rpc = { ok: false, error: String(err) }
+		}
+		checks.contract = { configured: hasContract() }
+		res.status(rpcOk ? 200 : 503).json({
+			ok: rpcOk,
+			network: config.network,
+			checks,
+			ts: new Date().toISOString(),
+		})
+	})
+
 	app.get("/openapi.json", (_req, res) => {
 		const price = Number(config.riskPriceUsd).toFixed(6)
 		res.json({

@@ -12,11 +12,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@coinbase/x402": "latest",
+    "@coinbase/x402": "2.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@x402/core": "^2.16.0",
     "@x402/evm": "^2.16.0",
-    "@x402/express": "latest",
+    "@x402/express": "2.16.0",
     "@x402/extensions": "^2.16.0",
     "@x402/fetch": "^2.16.0",
     "dotenv": "^16.4.5",
