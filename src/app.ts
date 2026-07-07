@@ -8,6 +8,7 @@ import { config } from "./config.js"
 import { assessToken } from "./lib/risk.js"
 import { renderLanding } from "./landing.js"
 import { verdicts, stats } from "./data/log.js"
+import { embedPngBase64, iconPngBase64 } from "./embedAssets.js"
 import { readAgentStats, readAgentStatsByAddress, hasContract } from "./lib/stake.js"
 import { mountDiscovery } from "./wellknown.js"
 import { backtest } from "./data/backtest.js"
@@ -72,6 +73,13 @@ export function createApp() {
 	})
 	app.get("/icon.svg", (_req, res) => {
 		res.type("image/svg+xml").send(ICON_SVG)
+	})
+
+	app.get("/embed.png", (_req, res) => {
+		res.type("png").send(Buffer.from(embedPngBase64, "base64"))
+	})
+	app.get("/icon.png", (_req, res) => {
+		res.type("png").send(Buffer.from(iconPngBase64, "base64"))
 	})
 
 	// Liveness/health probe: RPC reachability + contract config. Free, ungated.

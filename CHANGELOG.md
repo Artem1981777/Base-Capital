@@ -19,6 +19,7 @@ All notable changes to Base Capital are documented here. Format based on [Keep a
 - Batch endpoint (2026-07-07): added paid POST /v1/risk/batch (x402, Builder-Code attributed) scoring up to 10 Base tokens per call for the price of one; zod-validated body, per-token error isolation, same resilient engine. Added express.json body parsing.
 - OpenAPI batch (2026-07-07): documented POST /v1/risk/batch in /openapi.json (requestBody schema, x-payment-info, array response) so x402 indexers and LLM crawlers discover the batch route.
 - Farcaster auto-alerts (2026-07-07): the @basecapital agent auto-casts high-conviction rug alerts (score < 30) to Farcaster via Neynar after each risk tick; per-token 48h cooldown, max 3 casts/run, embeds the mini app for distribution. New agent/cast.ts + src/data/casts.ts cooldown log.
+- Raster embed image (2026-07-07): Farcaster/Base App frame + og:image now served as PNG (/embed.png, /icon.png); SVG is not supported for frame images, which caused the broken preview card. Assets baked into src/embedAssets.ts.
 - MCP batch tool (2026-07-07): added risk_batch tool to the MCP server (mcp/server.ts) so MCP clients score up to 10 Base tokens in one paid x402 call via POST /v1/risk/batch; same Builder-Code attribution.
 
 
