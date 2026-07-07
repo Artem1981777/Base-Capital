@@ -11,9 +11,17 @@ import { verdicts, stats } from "./data/log.js"
 import { readAgentStats, readAgentStatsByAddress, hasContract } from "./lib/stake.js"
 import { mountDiscovery } from "./wellknown.js"
 import { backtest } from "./data/backtest.js"
+import { z } from "zod"
+
+// Batch request schema: 1-10 token addresses. Per-token errors are isolated
+// in the handler so one bad address never fails the whole batch.
+const batchSchema = z.object({ tokens: z.array(z.string()).min(1).max(10) })
 
 export function createApp() {
 	const app = express()
+	// Parse JSON bodies for POST endpoints (e.g. /v1/risk/batch). Bounded to keep
+	// payloads small; x402 payment data travels in headers, not the body.
+	app.use(express.json({ limit: "16kb" }))
 
 	const repoUrl = "https://github.com/Artem1981777/Base-Capital"
 
@@ -25,6 +33,7 @@ export function createApp() {
 		endpoints: {
 			"GET /v1/risk/:token": `$${config.riskPriceUsd} USDC — token risk score on Base`,
 			"GET /v1/signal/trending": `$${config.riskPriceUsd} USDC — risk-ranked trending tokens (agent-to-agent)`,
+			"POST /v1/risk/batch": `$${config.riskPriceUsd} USDC - batch risk scores for up to 10 Base tokens in one call`,
 			"GET /v1/feed": "free — recent autonomous agent verdicts",
 			"GET /v1/stats": "free — autonomous agent activity stats",
 			"GET /v1/onchain/stats":
@@ -288,6 +297,22 @@ export function createApp() {
 	app.use(
 		paymentMiddleware(
 			{
+				"POST /v1/risk/batch": {
+					accepts: [
+						{
+							scheme: "exact",
+							price: String(config.riskPriceUsd),
+							network: config.network,
+							payTo: config.payTo,
+						},
+					],
+					description:
+						"Batch risk scoring: assess up to 10 Base tokens in one call. Body { tokens: string[] } (1-10). Returns an array of 0-100 safety scores with flags, confidence and per-source health.",
+					mimeType: "application/json",
+					extensions: {
+						[BUILDER_CODE]: declareBuilderCodeExtension(config.builderCode),
+					},
+				},
 				"GET /v1/risk/:token": {
 					accepts: [
 						{
@@ -358,6 +383,37 @@ export function createApp() {
 			network: config.network,
 			count: trending.length,
 			trending,
+		})
+	})
+
+
+	// Paid batch scoring: up to 10 Base tokens in one x402 call. Same resilient
+	// engine as /v1/risk/:token; per-token errors are isolated so one bad address
+	// never fails the whole batch. Builder-code attributed like /v1/risk.
+	app.post("/v1/risk/batch", async (req, res) => {
+		const parsed = batchSchema.safeParse(req.body)
+		if (!parsed.success) {
+			res.status(400).json({
+				error: "Body must be { tokens: string[] } with 1-10 items",
+				details: parsed.error.issues,
+			})
+			return
+		}
+		const tokens = [...new Set(parsed.data.tokens.map((t) => t.trim()))].slice(0, 10)
+		const results = await Promise.all(
+			tokens.map(async (token) => {
+				try {
+					return await assessToken(token)
+				} catch (err) {
+					return { token, error: (err as Error).message }
+				}
+			}),
+		)
+		res.json({
+			network: config.network,
+			count: results.length,
+			results,
+			generatedAt: new Date().toISOString(),
 		})
 	})
 

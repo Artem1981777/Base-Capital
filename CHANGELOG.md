@@ -16,6 +16,7 @@ All notable changes to Base Capital are documented here. Format based on [Keep a
 - Base App embed (2026-07-06): added fc:miniapp + fc:frame + og:image meta and served /embed.svg and /icon.svg, so the app renders as an openable Base App / Farcaster card when shared and is eligible for embed-based discovery.
 - Reliability & CI (2026-07-07): added /healthz probe (RPC + contract config), pinned floating x402 deps (@coinbase/x402, @x402/express) to exact versions, and added a Foundry forge-test job so Solidity tests run on every push.
 - Source resilience (2026-07-07): shared fetchJson helper (timeout + retries with backoff + per-host circuit breaker) across DexScreener/GoPlus/honeypot.is; DexScreener now degrades gracefully instead of 500-ing the endpoint; risk responses now include confidence (0-1) and per-source sources[] health.
+- Batch endpoint (2026-07-07): added paid POST /v1/risk/batch (x402, Builder-Code attributed) scoring up to 10 Base tokens per call for the price of one; zod-validated body, per-token error isolation, same resilient engine. Added express.json body parsing.
 
 
 ### Backtest rigor
