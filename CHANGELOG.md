@@ -17,6 +17,7 @@ All notable changes to Base Capital are documented here. Format based on [Keep a
 - Reliability & CI (2026-07-07): added /healthz probe (RPC + contract config), pinned floating x402 deps (@coinbase/x402, @x402/express) to exact versions, and added a Foundry forge-test job so Solidity tests run on every push.
 - Source resilience (2026-07-07): shared fetchJson helper (timeout + retries with backoff + per-host circuit breaker) across DexScreener/GoPlus/honeypot.is; DexScreener now degrades gracefully instead of 500-ing the endpoint; risk responses now include confidence (0-1) and per-source sources[] health.
 - Batch endpoint (2026-07-07): added paid POST /v1/risk/batch (x402, Builder-Code attributed) scoring up to 10 Base tokens per call for the price of one; zod-validated body, per-token error isolation, same resilient engine. Added express.json body parsing.
+- OpenAPI batch (2026-07-07): documented POST /v1/risk/batch in /openapi.json (requestBody schema, x-payment-info, array response) so x402 indexers and LLM crawlers discover the batch route.
 - MCP batch tool (2026-07-07): added risk_batch tool to the MCP server (mcp/server.ts) so MCP clients score up to 10 Base tokens in one paid x402 call via POST /v1/risk/batch; same Builder-Code attribution.
 
 

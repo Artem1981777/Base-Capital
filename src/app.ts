@@ -111,7 +111,7 @@ export function createApp() {
 				title: "Base Capital",
 				version: "1.0.0",
 				description: "x402 onchain risk-intelligence API for AI trading agents on Base.",
-				"x-guidance": "Token risk intelligence for AI trading agents on Base. Call GET /v1/risk/{token} with an ERC-20 contract address for a 0-100 safety score plus honeypot/rug/ownership/liquidity flags (GoPlus-backed); every verdict is staked onchain. Call GET /v1/signal/trending for risk-ranked trending tokens. Both cost " + price + " USDC per call via x402 on " + config.network + ". Free preview at GET /v1/preview/{token}.",
+				"x-guidance": "Token risk intelligence for AI trading agents on Base. Call GET /v1/risk/{token} with an ERC-20 contract address for a 0-100 safety score plus honeypot/rug/ownership/liquidity flags (GoPlus-backed); every verdict is staked onchain. Call GET /v1/signal/trending for risk-ranked trending tokens. Call POST /v1/risk/batch to score up to 10 tokens in one call. Both cost " + price + " USDC per call via x402 on " + config.network + ". Free preview at GET /v1/preview/{token}.",
 			},
 			servers: [{ url: "https://base-capital.vercel.app" }],
 			paths: {
@@ -142,6 +142,28 @@ export function createApp() {
 						},
 					},
 				},
+						"/v1/risk/batch": {
+							post: {
+								operationId: "riskBatch",
+								summary: "Batch risk check - score up to 10 Base tokens in one call",
+								tags: ["Risk"],
+								"x-payment-info": {
+									price: { mode: "fixed", currency: "USD", amount: price },
+									protocols: [{ x402: {} }],
+								},
+								requestBody: {
+									required: true,
+									content: { "application/json": { schema: { type: "object", properties: { tokens: { type: "array", minItems: 1, maxItems: 10, items: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" } } }, required: ["tokens"] } } },
+								},
+								responses: {
+									"200": {
+										description: "Array of per-token risk assessments; failed tokens include an error field",
+										content: { "application/json": { schema: { type: "object", properties: { count: { type: "number" }, results: { type: "array", items: { type: "object" } } }, required: ["results"] } } },
+									},
+									"402": { description: "Payment Required" },
+								},
+							},
+						},
 				"/v1/signal/trending": {
 					get: {
 						operationId: "trendingSignal",
