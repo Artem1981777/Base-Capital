@@ -7,7 +7,7 @@
  * Env:
  *   BASE_CAPITAL_URL  default https://base-capital.vercel.app
  *   PRIVATE_KEY       buyer EOA (0x...) funded with USDC on Base.
- *                     Required only for paid tools (risk_check, trending_signal).
+ *                     Required only for paid tools (risk_check, risk_batch, trending_signal).
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
@@ -30,6 +30,17 @@ if (PK) {
 
 async function getJson(f: typeof fetch, path: string) {
 	const res = await f(`${BASE}${path}`, { method: "GET" })
+	const text = await res.text()
+	if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}: ${text.slice(0, 300)}`)
+	try { return JSON.parse(text) } catch { return text }
+}
+
+async function postJson(f: typeof fetch, path: string, body: unknown) {
+	const res = await f(`${BASE}${path}`, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify(body),
+	})
 	const text = await res.text()
 	if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}: ${text.slice(0, 300)}`)
 	try { return JSON.parse(text) } catch { return text }
@@ -77,6 +88,18 @@ server.registerTool(
 	},
 	async ({ token }) => {
 		try { return ok(await getJson(fetch, `/v1/preview/${token}`)) } catch (e) { return fail(e) }
+	},
+)
+
+server.registerTool(
+	"risk_batch",
+	{
+		title: "Batch token risk check (paid)",
+		description: "Risk scores (0-100) + flags, confidence and per-source health for up to 10 Base tokens in one call. One x402 payment for the whole batch. Costs $0.01 USDC via x402 (requires PRIVATE_KEY).",
+		inputSchema: { tokens: z.array(z.string()).min(1).max(10).describe("1-10 Base token contract addresses (0x...)") },
+	},
+	async ({ tokens }) => {
+		try { return ok(await postJson(payFetch, "/v1/risk/batch", { tokens })) } catch (e) { return fail(e) }
 	},
 )
 
