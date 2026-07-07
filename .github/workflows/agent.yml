@@ -25,11 +25,17 @@ jobs:
         env:
           NETWORK_MODE: mainnet
         run: npx tsx agent/tick.ts
+      - name: Cast rug alerts
+        env:
+          NEYNAR_API_KEY: $ secrets.NEYNAR_API_KEY 
+          NEYNAR_SIGNER_UUID: $ secrets.NEYNAR_SIGNER_UUID 
+          BASE_CAPITAL_URL: https://base-capital.vercel.app
+        run: npx tsx agent/cast.ts
       - name: Commit verdict log
         run: |
           git config user.name "risk-agent"
           git config user.email "agent@base-capital.local"
-          git add src/data/log.ts
+          git add src/data/log.ts src/data/casts.ts
           if git diff --cached --quiet; then
             echo "no changes to commit"
           else
