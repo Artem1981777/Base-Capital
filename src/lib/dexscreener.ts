@@ -1,6 +1,8 @@
 // DexScreener client — free, no API key, 60 req/min.
 // Docs: https://docs.dexscreener.com/api/reference
 
+import { fetchJson } from "./http.js"
+
 const BASE_URL = "https://api.dexscreener.com"
 
 export type DexPair = {
@@ -17,12 +19,15 @@ export type DexPair = {
 }
 
 export async function getBasePairs(token: string): Promise<DexPair[]> {
-	const res = await fetch(`${BASE_URL}/latest/dex/tokens/${token}`, {
-		headers: { accept: "application/json" },
-	})
-	if (!res.ok) throw new Error(`DexScreener responded ${res.status}`)
-	const json = (await res.json()) as { pairs?: DexPair[] }
-	return (json.pairs ?? []).filter((p) => p.chainId === "base")
+	try {
+		const json = await fetchJson<{ pairs?: DexPair[] }>(
+			`${BASE_URL}/latest/dex/tokens/${token}`,
+		)
+		return (json.pairs ?? []).filter((p) => p.chainId === "base")
+	} catch {
+		// Degrade gracefully: a DexScreener outage must not 500 the risk endpoint.
+		return []
+	}
 }
 
 export function bestPair(pairs: DexPair[]): DexPair | undefined {

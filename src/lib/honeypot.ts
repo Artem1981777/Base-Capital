@@ -5,6 +5,7 @@
 // Keyless + free, cached 5min. Returns "unknown" on ANY error so callers
 // degrade gracefully and never throw. Base mainnet = chainID 8453.
 import { cached } from "./cache.js"
+import { fetchJson } from "./http.js"
 
 // Assembled from fragments so the URL is never auto-linkified when pasted into
 // a terminal (same convention as agent/discovery.ts).
@@ -33,13 +34,11 @@ export async function honeypotLabel(token: string): Promise<HoneypotVerdict> {
     }
     try {
       const url = `${HP_API}?address=${addr}&chainID=${CHAIN_ID}`
-      const res = await fetch(url, { headers: { accept: "application/json" } })
-      if (!res.ok) return { ...base, label: "unknown" as const, reason: `http_${res.status}` }
-      const j = (await res.json()) as {
+      const j = await fetchJson<{
         honeypotResult?: { isHoneypot?: boolean; honeypotReason?: string }
         simulationResult?: { buyTax?: number; sellTax?: number }
         simulationSuccess?: boolean
-      }
+      }>(url)
       const hr = j.honeypotResult
       const sim = j.simulationResult
       const sellTax = typeof sim?.sellTax === "number" ? sim.sellTax : null

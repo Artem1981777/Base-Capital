@@ -48,6 +48,8 @@ export type RiskResult = {
   score: number
   rating: RiskRating
   flags: string[]
+  confidence: number
+  sources: Array<{ name: string; ok: boolean; latencyMs: number }>
   data: {
     liquidityUsd: number
     priceUsd: string | null
@@ -158,6 +160,14 @@ function summarize(s: GoPlusSecurity | null): SecuritySummary {
   }
 }
 
+// Time a source call and capture its resolved value so the risk response
+// can report per-source health (see sources[] / confidence below).
+async function timed<T>(fn: () => Promise<T>): Promise<{ value: T; ms: number }> {
+	const t0 = Date.now()
+	const value = await fn()
+	return { value, ms: Date.now() - t0 }
+}
+
 export async function assessToken(
   tokenRaw: string,
   opts?: { simulate?: boolean },
@@ -168,13 +178,18 @@ export async function assessToken(
     `risk:${token.toLowerCase()}:${simulate ? "sim" : "nosim"}`,
     60_000,
     async () => {
-      const [pairs, owner, totalSupply, sec, sim] = await Promise.all([
-        getBasePairs(token),
-        getOwner(token),
-        getTotalSupply(token),
-        getTokenSecurity(token),
-        simulate ? honeypotLabel(token) : Promise.resolve(null),
+      const [dexR, ownerR, supplyR, secR, simR] = await Promise.all([
+        timed(() => getBasePairs(token)),
+        timed(() => getOwner(token)),
+        timed(() => getTotalSupply(token)),
+        timed(() => getTokenSecurity(token)),
+        timed(() => (simulate ? honeypotLabel(token) : Promise.resolve(null))),
       ])
+      const pairs = dexR.value
+      const owner = ownerR.value
+      const totalSupply = supplyR.value
+      const sec = secR.value
+      const sim = simR.value
       const pair = bestPair(pairs)
 
       const flags: string[] = []
@@ -298,11 +313,30 @@ export async function assessToken(
           }
         : { source: "disabled", label: "unknown", reason: "simulation_disabled" }
 
+      const sources = [
+        { name: "dexscreener", ok: pairs.length > 0, latencyMs: dexR.ms },
+        { name: "onchain", ok: owner !== null || totalSupply !== null, latencyMs: Math.max(ownerR.ms, supplyR.ms) },
+        { name: "goplus", ok: sec !== null, latencyMs: secR.ms },
+        { name: "honeypot.is", ok: simulate ? sim !== null && sim.label !== "unknown" : false, latencyMs: simR.ms },
+      ]
+      const sourceWeights: Record<string, number> = { dexscreener: 0.25, onchain: 0.1, goplus: 0.3, "honeypot.is": 0.35 }
+      let weightSum = 0
+      let weightOk = 0
+      for (const src of sources) {
+        if (src.name === "honeypot.is" && !simulate) continue
+        const w = sourceWeights[src.name] ?? 0
+        weightSum += w
+        if (src.ok) weightOk += w
+      }
+      const confidence = weightSum > 0 ? Math.round((weightOk / weightSum) * 100) / 100 : 0
+
       return {
         token,
         score,
         rating,
         flags,
+        confidence,
+        sources,
         data: {
           liquidityUsd,
           priceUsd: pair?.priceUsd ?? null,

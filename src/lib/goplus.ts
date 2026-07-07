@@ -5,6 +5,7 @@
 // so risk scoring always degrades gracefully and never throws on GoPlus
 // downtime. No API key required.
 import { cached } from "./cache.js"
+import { fetchJson } from "./http.js"
 import { config } from "../config.js"
 
 const BASE_URL = "https://api.gopluslabs.io/api/v1/token_security"
@@ -94,12 +95,10 @@ export async function getTokenSecurity(
   return cached(`goplus:${addr}`, 5 * 60_000, async () => {
     try {
       const url = `${BASE_URL}/${BASE_CHAIN_ID}?contract_addresses=${addr}`
-      const res = await fetch(url, { headers: { accept: "application/json" } })
-      if (!res.ok) return null
-      const json = (await res.json()) as {
+      const json = await fetchJson<{
         code?: number
         result?: Record<string, Record<string, unknown>>
-      }
+      }>(url)
       // Result is keyed by the lowercased contract address.
       const r = json.result?.[addr]
       if (!r || Object.keys(r).length === 0) return null
