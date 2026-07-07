@@ -138,6 +138,7 @@ Base URL: `https://base-capital.vercel.app`
 |---|---|---|
 | `GET /v1/risk/:token` | $0.01 USDC | Full risk score for a Base token (liquidity, LP, ownership, age, flags). x402-gated. |
 | `GET /v1/signal/trending` | $0.01 USDC | Risk-ranked watchlist, riskiest first. Built for agent-to-agent use. x402-gated. |
+| `POST /v1/risk/batch` | $0.01 USDC | Score up to 10 Base tokens in one call (body `{ tokens: string[] }`, 1-10). Per-token error isolation. x402-gated, Builder-Code attributed. |
 | `GET /v1/preview/:token` | free (20/min/IP) | Same scoring as the paid route; powers the browser demo. |
 | `GET /v1/feed?limit=` | free | Recent autonomous agent verdicts. |
 | `GET /v1/stats` | free | Autonomous agent activity stats. |
@@ -302,6 +303,9 @@ Verified end-to-end: agents discover the endpoints via the discovery document, p
 ---
 
 ## 🏁 Milestones
+
+### 2026-07-07 - Production hardening: CI, resilient sources, batch API
+Three shipped upgrades, all backward-compatible and green in CI: (1) **Reliability & CI** - a dedicated `contracts` job runs `forge test` alongside the TypeScript `test` job on every push, and a new `GET /healthz` probes the Base RPC and contract wiring. (2) **Source resilience** - a shared `fetchJson` helper adds request timeouts, retries with exponential backoff + jitter, and a per-host circuit breaker across DexScreener/GoPlus/honeypot.is; DexScreener now degrades gracefully instead of 500-ing the endpoint, and every risk response now carries a `confidence` (0-1) score plus per-source `sources[]` health (verified live: WETH 96/confidence 1.0, all four sources ok). (3) **Batch API** - a new paid `POST /v1/risk/batch` scores up to 10 Base tokens in one x402 call (zod-validated body, per-token error isolation), verified live returning HTTP 402 when unpaid; like every paid route it stays tagged Builder Code `bc_kob8hqa0`.
 
 ### 2026-06-30 — RiskStake v3 live (optimistic resolution + agentId reputation)
 
