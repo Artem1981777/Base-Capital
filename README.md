@@ -305,6 +305,7 @@ Verified end-to-end: agents discover the endpoints via the discovery document, p
 ## 🏁 Milestones
 
 ### 2026-07-07 - Production hardening: CI, resilient sources, batch API
+- **Farcaster auto-alerts** — the @basecapital agent auto-casts high-conviction rug alerts (score < 30) to Farcaster via Neynar after each hourly risk tick (per-token 48h cooldown, max 3/run), embedding the mini app as a frame for zero-cost distribution.
 Three shipped upgrades, all backward-compatible and green in CI: (1) **Reliability & CI** - a dedicated `contracts` job runs `forge test` alongside the TypeScript `test` job on every push, and a new `GET /healthz` probes the Base RPC and contract wiring. (2) **Source resilience** - a shared `fetchJson` helper adds request timeouts, retries with exponential backoff + jitter, and a per-host circuit breaker across DexScreener/GoPlus/honeypot.is; DexScreener now degrades gracefully instead of 500-ing the endpoint, and every risk response now carries a `confidence` (0-1) score plus per-source `sources[]` health (verified live: WETH 96/confidence 1.0, all four sources ok). (3) **Batch API** - a new paid `POST /v1/risk/batch` scores up to 10 Base tokens in one x402 call (zod-validated body, per-token error isolation), verified live returning HTTP 402 when unpaid; like every paid route it stays tagged Builder Code `bc_kob8hqa0`.
 
 ### 2026-06-30 — RiskStake v3 live (optimistic resolution + agentId reputation)
