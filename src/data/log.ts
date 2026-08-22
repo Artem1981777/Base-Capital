@@ -11,16 +11,293 @@ export type AgentStats = {
 }
 
 export const stats: AgentStats = {
-	"updatedAt": "2026-08-22T20:17:53.395Z",
-	"tokensScored": 13639,
-	"verdictsIssued": 13639,
-	"safe": 11749,
-	"risky": 964,
-	"likelyRug": 926,
-	"ticks": 795
+	"updatedAt": "2026-08-22T21:17:24.441Z",
+	"tokensScored": 13657,
+	"verdictsIssued": 13657,
+	"safe": 11764,
+	"risky": 965,
+	"likelyRug": 928,
+	"ticks": 796
 }
 
 export const verdicts: AgentVerdict[] = [
+	{
+		"id": "89c0682ea6a8",
+		"ts": "2026-08-22T21:17:20.099Z",
+		"symbol": "WETH",
+		"token": "0x4200000000000000000000000000000000000006",
+		"score": 96,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 0.92,
+		"flags": [
+			"elevated_holder_concentration"
+		],
+		"liquidityUsd": 109803102.09,
+		"hash": "89c0682ea6a8209cd414084d86430f2394f69712988cb687eeca4d81726b3246"
+	},
+	{
+		"id": "86613d60fee5",
+		"ts": "2026-08-22T21:17:20.561Z",
+		"symbol": "cbBTC",
+		"token": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+		"score": 84,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 0.68,
+		"flags": [
+			"owner_not_renounced",
+			"extreme_holder_concentration"
+		],
+		"liquidityUsd": 15353383.15,
+		"hash": "86613d60fee56bf88fb537428651efe95dea7cf2c1e6c45bb1038646063e6b79"
+	},
+	{
+		"id": "4b06ded9bb44",
+		"ts": "2026-08-22T21:17:21.013Z",
+		"symbol": "DEGEN",
+		"token": "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",
+		"score": 88,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 0.76,
+		"flags": [
+			"owner_not_renounced",
+			"high_holder_concentration"
+		],
+		"liquidityUsd": 871891.71,
+		"hash": "4b06ded9bb440372c28df79a395a95c18ee85a57e8c74f72a989e85036f6116c"
+	},
+	{
+		"id": "77ef6b9630d1",
+		"ts": "2026-08-22T21:17:21.249Z",
+		"symbol": "AERO",
+		"token": "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
+		"score": 88,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 0.76,
+		"flags": [
+			"mintable",
+			"high_holder_concentration"
+		],
+		"liquidityUsd": 28019602.72,
+		"hash": "77ef6b9630d1bcec05e3103a383ff7b56e7f72d8e0fe77fe35952af1dc908e88"
+	},
+	{
+		"id": "c5d99153dab8",
+		"ts": "2026-08-22T21:17:21.485Z",
+		"symbol": "VIRTUAL",
+		"token": "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
+		"score": 40,
+		"rating": "high",
+		"verdict": "RISKY",
+		"confidence": 0.2,
+		"flags": [
+			"hidden_owner",
+			"owner_can_change_balance",
+			"mintable",
+			"elevated_holder_concentration"
+		],
+		"liquidityUsd": 8569867632.36,
+		"hash": "c5d99153dab87d70f4069165e609cc6625e81fba2480b67663827c5dbef93919"
+	},
+	{
+		"id": "306a96258af8",
+		"ts": "2026-08-22T21:17:21.722Z",
+		"symbol": "BRETT",
+		"token": "0x532f27101965dd16442E59d40670FaF5eBB142E4",
+		"score": 90,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 0.8,
+		"flags": [
+			"modifiable_tax"
+		],
+		"liquidityUsd": 1162350.53,
+		"hash": "306a96258af8d4268fef89e52500340fadabc0c6f037f081e63520fd56c64db3"
+	},
+	{
+		"id": "3453572c3fb0",
+		"ts": "2026-08-22T21:17:21.972Z",
+		"symbol": "USDC",
+		"token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+		"score": 86,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 0.72,
+		"flags": [
+			"volume_liquidity_anomaly",
+			"owner_not_renounced"
+		],
+		"liquidityUsd": 555552.87,
+		"hash": "3453572c3fb018bfd76d99dd339ee5f86dc0ed61084aae3e624a0d98dfd042da"
+	},
+	{
+		"id": "cf06a94efeb7",
+		"ts": "2026-08-22T21:17:22.225Z",
+		"symbol": "cbETH",
+		"token": "0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22",
+		"score": 84,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 0.68,
+		"flags": [
+			"owner_not_renounced",
+			"extreme_holder_concentration"
+		],
+		"liquidityUsd": 1682028.92,
+		"hash": "cf06a94efeb75ca6ba606b23187c6769748ccebc84bad3cfbd51cec4a273c46e"
+	},
+	{
+		"id": "f3e775d2b646",
+		"ts": "2026-08-22T21:17:22.467Z",
+		"symbol": "Basecat",
+		"token": "0xB2000000000000000000004c27f6523082f41D01",
+		"score": 30,
+		"rating": "high",
+		"verdict": "LIKELY_RUG",
+		"confidence": 0.4,
+		"flags": [
+			"sim_honeypot"
+		],
+		"liquidityUsd": 818282.22,
+		"hash": "f3e775d2b64624f6b235b94a6b9c8b4a63a43389a937c56892e38a9d09c9ebe9"
+	},
+	{
+		"id": "5befe827daa2",
+		"ts": "2026-08-22T21:17:22.700Z",
+		"symbol": "DRB",
+		"token": "0x3ec2156D4c0A9CBdAB4a016633b7BcF6a8d68Ea2",
+		"score": 100,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 1,
+		"flags": [],
+		"liquidityUsd": 1278410.85,
+		"hash": "5befe827daa2e824960f632774c72c608b71700712a4798d777a726a42fa30d9"
+	},
+	{
+		"id": "e09509ae1463",
+		"ts": "2026-08-22T21:17:22.916Z",
+		"symbol": "BRIAN",
+		"token": "0xB2000000000000000000007BF6D5cBb0E24cB301",
+		"score": 30,
+		"rating": "high",
+		"verdict": "LIKELY_RUG",
+		"confidence": 0.4,
+		"flags": [
+			"security_check_unavailable",
+			"sim_honeypot"
+		],
+		"liquidityUsd": 137200.29,
+		"hash": "e09509ae1463654d4b88d880ee32abe469e8eb02ba150a0e4825485dfa9a9831"
+	},
+	{
+		"id": "409fabef47d7",
+		"ts": "2026-08-22T21:17:23.137Z",
+		"symbol": "VVV",
+		"token": "0xacfE6019Ed1A7Dc6f7B508C02d1b04ec88cC21bf",
+		"score": 100,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 1,
+		"flags": [
+			"security_check_unavailable"
+		],
+		"liquidityUsd": 11006710.16,
+		"hash": "409fabef47d72d7d3defabfe786a0b6514068508b1b3a82553c8474b80432c89"
+	},
+	{
+		"id": "c1995b46ee43",
+		"ts": "2026-08-22T21:17:23.353Z",
+		"symbol": "aeon",
+		"token": "0xBf8E8f0e8866a7052F948C16508644347c57aba3",
+		"score": 100,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 1,
+		"flags": [
+			"security_check_unavailable"
+		],
+		"liquidityUsd": 563658.51,
+		"hash": "c1995b46ee43be032ffc3f1b961251f21035087913371e520df3aacf45d0e068"
+	},
+	{
+		"id": "c4b84c0e9cdd",
+		"ts": "2026-08-22T21:17:23.568Z",
+		"symbol": "GITLAWB",
+		"token": "0x5F980Dcfc4c0fa3911554cf5ab288ed0eb13DBa3",
+		"score": 100,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 1,
+		"flags": [
+			"security_check_unavailable"
+		],
+		"liquidityUsd": 674206.91,
+		"hash": "c4b84c0e9cdddd116e7acf9527e30a144a801cf1e4d901458eecfc95917bda81"
+	},
+	{
+		"id": "53987f39e96f",
+		"ts": "2026-08-22T21:17:23.787Z",
+		"symbol": "BNKR",
+		"token": "0x22aF33FE49fD1Fa80c7149773dDe5890D3c76F3b",
+		"score": 100,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 1,
+		"flags": [
+			"security_check_unavailable"
+		],
+		"liquidityUsd": 1855162.81,
+		"hash": "53987f39e96f050819499e6e249ed1e2e3ac119d6bdd2648446f1b01f238b42c"
+	},
+	{
+		"id": "35acf2f9756e",
+		"ts": "2026-08-22T21:17:24.004Z",
+		"symbol": "TIBBIR",
+		"token": "0xA4A2E2ca3fBfE21aed83471D28b6f65A233C6e00",
+		"score": 100,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 1,
+		"flags": [
+			"security_check_unavailable"
+		],
+		"liquidityUsd": 3334751.71,
+		"hash": "35acf2f9756ea567e9f147897620a4bc32098eef9ca44c3a68de6109ee44a3a7"
+	},
+	{
+		"id": "22f86605773a",
+		"ts": "2026-08-22T21:17:24.220Z",
+		"symbol": "Ratspeak",
+		"token": "0xf1e9Baa65d418A9025e1851DD2D37f1AD208bba3",
+		"score": 100,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 1,
+		"flags": [
+			"security_check_unavailable"
+		],
+		"liquidityUsd": 507953.66,
+		"hash": "22f86605773aba95ea72826c3ef301710cf3eed26ec55617b3c3f62f2b4fb9f3"
+	},
+	{
+		"id": "b7cc3072e393",
+		"ts": "2026-08-22T21:17:24.441Z",
+		"symbol": "HYDX",
+		"token": "0x00000e7efa313F4E11Bfff432471eD9423AC6B30",
+		"score": 100,
+		"rating": "low",
+		"verdict": "SAFE",
+		"confidence": 1,
+		"flags": [
+			"security_check_unavailable"
+		],
+		"liquidityUsd": 843359.76,
+		"hash": "b7cc3072e393c6a4909d9c1805ade0624390e71809333198920c862e925c79ca"
+	},
 	{
 		"id": "fbdd5f7d93c3",
 		"ts": "2026-08-22T20:17:48.051Z",
@@ -2832,282 +3109,5 @@ export const verdicts: AgentVerdict[] = [
 		],
 		"liquidityUsd": 87172.66,
 		"hash": "54f534058d460fd74ab90bb79c669192ef391d77cd00175e3846de72edd5151f"
-	},
-	{
-		"id": "f60076d5c826",
-		"ts": "2026-08-22T11:17:16.660Z",
-		"symbol": "VVV",
-		"token": "0xacfE6019Ed1A7Dc6f7B508C02d1b04ec88cC21bf",
-		"score": 100,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 1,
-		"flags": [
-			"security_check_unavailable"
-		],
-		"liquidityUsd": 11661596.84,
-		"hash": "f60076d5c8261bb8c9d05fedb16304ff295ba2095d978df13c82e5dec2fb7ac7"
-	},
-	{
-		"id": "92c9e5cd7622",
-		"ts": "2026-08-22T11:17:16.887Z",
-		"symbol": "aeon",
-		"token": "0xBf8E8f0e8866a7052F948C16508644347c57aba3",
-		"score": 100,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 1,
-		"flags": [
-			"security_check_unavailable"
-		],
-		"liquidityUsd": 516935.86,
-		"hash": "92c9e5cd76224bff6136029c4be2d020c5e9c97ea6574f8f32170579ffebc272"
-	},
-	{
-		"id": "d5f9af0c935b",
-		"ts": "2026-08-22T11:17:17.110Z",
-		"symbol": "BRIAN",
-		"token": "0xB2000000000000000000007BF6D5cBb0E24cB301",
-		"score": 30,
-		"rating": "high",
-		"verdict": "LIKELY_RUG",
-		"confidence": 0.4,
-		"flags": [
-			"security_check_unavailable",
-			"sim_honeypot"
-		],
-		"liquidityUsd": 130768.92,
-		"hash": "d5f9af0c935bcbb8d77c234b4a8a64ad76394a514bc21987a295b8818c4771a5"
-	},
-	{
-		"id": "93276ed73983",
-		"ts": "2026-08-22T11:17:17.320Z",
-		"symbol": "TIBBIR",
-		"token": "0xA4A2E2ca3fBfE21aed83471D28b6f65A233C6e00",
-		"score": 100,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 1,
-		"flags": [
-			"security_check_unavailable"
-		],
-		"liquidityUsd": 3252583.11,
-		"hash": "93276ed73983fc1c33b9bd3231966dd5802bdf0c25429bccb9ace3d6b5abb943"
-	},
-	{
-		"id": "c0fa2eafef28",
-		"ts": "2026-08-22T11:17:17.540Z",
-		"symbol": "LFI",
-		"token": "0x3722264aB15a1dfCe5a5af89e6547F7949A8ABA3",
-		"score": 100,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 1,
-		"flags": [
-			"security_check_unavailable"
-		],
-		"liquidityUsd": 646146.58,
-		"hash": "c0fa2eafef286b93b1750071ff0bbf9af8fb5623159444f4715c97569eb168fa"
-	},
-	{
-		"id": "debb2e58ff44",
-		"ts": "2026-08-22T11:17:17.767Z",
-		"symbol": "B3",
-		"token": "0xB3B32F9f8827D4634fE7d973Fa1034Ec9fdDB3B3",
-		"score": 100,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 1,
-		"flags": [
-			"security_check_unavailable"
-		],
-		"liquidityUsd": 532916.86,
-		"hash": "debb2e58ff44ebb158994f5a401b5a87bf001353cecda06a7a3a7230ec957d77"
-	},
-	{
-		"id": "d37ebc1b9f1e",
-		"ts": "2026-08-22T11:17:18.180Z",
-		"symbol": "VEIL",
-		"token": "0x767A739D1A152639e9Ea1D8c1BD55FDC5B217D7f",
-		"score": 100,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 1,
-		"flags": [
-			"security_check_unavailable"
-		],
-		"liquidityUsd": 579618.29,
-		"hash": "d37ebc1b9f1e3b3d0373d8e9327a4dc51512045f14562aae4406dfe78714b191"
-	},
-	{
-		"id": "8fc19e476a2c",
-		"ts": "2026-08-22T10:18:26.334Z",
-		"symbol": "WETH",
-		"token": "0x4200000000000000000000000000000000000006",
-		"score": 96,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 0.92,
-		"flags": [
-			"elevated_holder_concentration"
-		],
-		"liquidityUsd": 109451008.28,
-		"hash": "8fc19e476a2cd32618f93a6b08678661d2feffec672d2a010bdd9b05ad5e7b0c"
-	},
-	{
-		"id": "72758b1c0cfb",
-		"ts": "2026-08-22T10:18:26.595Z",
-		"symbol": "cbBTC",
-		"token": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
-		"score": 84,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 0.68,
-		"flags": [
-			"owner_not_renounced",
-			"extreme_holder_concentration"
-		],
-		"liquidityUsd": 16799928.05,
-		"hash": "72758b1c0cfb9f14b610b8afc984889b397580e4d7406bb32c551c3e2ebecb7e"
-	},
-	{
-		"id": "aa4cabe1b1d3",
-		"ts": "2026-08-22T10:18:26.832Z",
-		"symbol": "DEGEN",
-		"token": "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",
-		"score": 88,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 0.76,
-		"flags": [
-			"owner_not_renounced",
-			"high_holder_concentration"
-		],
-		"liquidityUsd": 888262.62,
-		"hash": "aa4cabe1b1d3d9897a69745b58625e6eda2013c0fceed9d1be84f455da668132"
-	},
-	{
-		"id": "ee94192fc319",
-		"ts": "2026-08-22T10:18:27.071Z",
-		"symbol": "AERO",
-		"token": "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
-		"score": 88,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 0.76,
-		"flags": [
-			"mintable",
-			"high_holder_concentration"
-		],
-		"liquidityUsd": 28024959.86,
-		"hash": "ee94192fc319dc65f6c5a10914ca4b690484ac87dfe2aec2d5b07089a9546f37"
-	},
-	{
-		"id": "60f9a08722b1",
-		"ts": "2026-08-22T10:18:27.305Z",
-		"symbol": "VIRTUAL",
-		"token": "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
-		"score": 40,
-		"rating": "high",
-		"verdict": "RISKY",
-		"confidence": 0.2,
-		"flags": [
-			"hidden_owner",
-			"owner_can_change_balance",
-			"mintable",
-			"elevated_holder_concentration"
-		],
-		"liquidityUsd": 8569867632.36,
-		"hash": "60f9a08722b144dff5d38810b39804845ce727ef13de7a9df0706f241ac79b24"
-	},
-	{
-		"id": "f053bbfce528",
-		"ts": "2026-08-22T10:18:27.543Z",
-		"symbol": "BRETT",
-		"token": "0x532f27101965dd16442E59d40670FaF5eBB142E4",
-		"score": 90,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 0.8,
-		"flags": [
-			"modifiable_tax"
-		],
-		"liquidityUsd": 1162871.2,
-		"hash": "f053bbfce52853f9b3691d2238334dce782a118759ac690f364417a5393aa449"
-	},
-	{
-		"id": "e7a4a3f50436",
-		"ts": "2026-08-22T10:18:27.766Z",
-		"symbol": "USDC",
-		"token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-		"score": 96,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 0.92,
-		"flags": [
-			"owner_not_renounced"
-		],
-		"liquidityUsd": 152761.95,
-		"hash": "e7a4a3f504365c494f3397978e2f062274aff7a7c7a345b7b49c8fafc434fa44"
-	},
-	{
-		"id": "7211fc0b8f3f",
-		"ts": "2026-08-22T10:18:28.023Z",
-		"symbol": "cbETH",
-		"token": "0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22",
-		"score": 84,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 0.68,
-		"flags": [
-			"owner_not_renounced",
-			"extreme_holder_concentration"
-		],
-		"liquidityUsd": 3556462.99,
-		"hash": "7211fc0b8f3f0df8cf58c871a115232ff2aa75ddc1e5ea0b7bbfa191e3ad8f5f"
-	},
-	{
-		"id": "60e768accb72",
-		"ts": "2026-08-22T10:18:28.481Z",
-		"symbol": "Basecat",
-		"token": "0xB2000000000000000000004c27f6523082f41D01",
-		"score": 20,
-		"rating": "critical",
-		"verdict": "LIKELY_RUG",
-		"confidence": 0.6,
-		"flags": [
-			"volume_liquidity_anomaly",
-			"sim_honeypot"
-		],
-		"liquidityUsd": 846483.84,
-		"hash": "60e768accb72823ae32c544dda1529b1f8d11d4100a96e59a535e62d672cf4bb"
-	},
-	{
-		"id": "d6e76445392c",
-		"ts": "2026-08-22T10:18:28.746Z",
-		"symbol": "DRB",
-		"token": "0x3ec2156D4c0A9CBdAB4a016633b7BcF6a8d68Ea2",
-		"score": 100,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 1,
-		"flags": [],
-		"liquidityUsd": 1255189.29,
-		"hash": "d6e76445392c81c56faffa9148cd4096b8eecd9217f8e5773916209ad716619d"
-	},
-	{
-		"id": "fdc544fbe6ad",
-		"ts": "2026-08-22T10:18:28.959Z",
-		"symbol": "BNKR",
-		"token": "0x22aF33FE49fD1Fa80c7149773dDe5890D3c76F3b",
-		"score": 100,
-		"rating": "low",
-		"verdict": "SAFE",
-		"confidence": 1,
-		"flags": [
-			"security_check_unavailable"
-		],
-		"liquidityUsd": 1860871.58,
-		"hash": "fdc544fbe6ad55f6f468f7ae8003e7f11b61548eaafef4f94a56ea3fc5aaebcf"
 	}
 ]
